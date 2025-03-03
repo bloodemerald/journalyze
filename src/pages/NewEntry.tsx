@@ -16,6 +16,7 @@ const NewEntry = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [user, setUser] = useState(store.getUser());
+  const [apiError, setApiError] = useState<string | null>(null);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
@@ -47,6 +48,7 @@ const NewEntry = () => {
 
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
+    setApiError(null);
     
     try {
       // Create a data URL for the image
@@ -87,6 +89,7 @@ const NewEntry = () => {
     }
     
     setIsAnalyzing(true);
+    setApiError(null);
     toast.info("Analyzing chart with Gemini AI...");
     
     try {
@@ -99,10 +102,11 @@ const NewEntry = () => {
         }));
         toast.success("AI analysis completed");
       } else {
-        toast.error("Failed to analyze chart");
+        throw new Error("Failed to analyze chart");
       }
     } catch (error) {
       console.error('Error during analysis:', error);
+      setApiError("Failed to analyze chart. Please check your API key and try again.");
       toast.error("Error analyzing chart");
     } finally {
       setIsAnalyzing(false);
@@ -297,6 +301,14 @@ const NewEntry = () => {
                     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
                       <Brain size={14} />
                       <span>Analyzing chart with Gemini AI...</span>
+                    </div>
+                  )}
+                  
+                  {apiError && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                      <p className="font-medium">API Error</p>
+                      <p>{apiError}</p>
+                      <p className="mt-2 text-xs">Note: Gemini Pro Vision was deprecated. The app now uses gemini-1.5-flash model.</p>
                     </div>
                   )}
                 </div>
