@@ -1,127 +1,21 @@
-
 #root {
-  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
-/* FF7 Remake inspired styling */
-.ff7-container {
-  position: relative;
-  width: 100%;
-  min-height: 100vh;
-  padding-top: 4rem;
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
 }
-
-.ff7-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(76, 203, 255, 0.3), transparent);
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
 }
-
-.ff7-container::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(76, 203, 255, 0.2), transparent);
-}
-
-.ff7-grid {
-  display: grid;
-  gap: 1rem;
-  padding: 1rem;
-}
-
-/* FF7 Remake inspired border effects */
-.ff7-border {
-  position: relative;
-}
-
-.ff7-border::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid rgba(76, 203, 255, 0.6);
-  border-left: 2px solid rgba(76, 203, 255, 0.6);
-}
-
-.ff7-border::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 8px;
-  height: 8px;
-  border-top: 2px solid rgba(76, 203, 255, 0.6);
-  border-right: 2px solid rgba(76, 203, 255, 0.6);
-}
-
-.ff7-border-bottom::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 8px;
-  height: 8px;
-  border-bottom: 2px solid rgba(76, 203, 255, 0.6);
-  border-left: 2px solid rgba(76, 203, 255, 0.6);
-}
-
-.ff7-border-bottom::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 8px;
-  height: 8px;
-  border-bottom: 2px solid rgba(76, 203, 255, 0.6);
-  border-right: 2px solid rgba(76, 203, 255, 0.6);
-}
-
-/* FF7 Remake inspired overlay effects */
-.ff7-overlay {
-  position: relative;
-}
-
-.ff7-overlay::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(135deg, rgba(76, 203, 255, 0.1) 0%, transparent 100%);
-  pointer-events: none;
-}
-
-/* FF7 Remake inspired glowing effect */
-.ff7-glow {
-  box-shadow: 0 0 15px rgba(76, 203, 255, 0.2);
-  transition: box-shadow 0.3s ease;
-}
-
-.ff7-glow:hover {
-  box-shadow: 0 0 20px rgba(76, 203, 255, 0.4);
-}
-
-/* FF7 Remake inspired animation */
-@keyframes ff7-pulse {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
-
-.ff7-pulse {
-  animation: ff7-pulse 2s infinite;
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
 }
 
 @keyframes logo-spin {
@@ -137,4 +31,12 @@
   a:nth-of-type(2) .logo {
     animation: logo-spin infinite 20s linear;
   }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
 }

@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from 'react-router-dom';
-import { BarChart3, Home, Plus, Shield, Sword } from 'lucide-react';
+import { BarChart3, Home, Plus, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function Header() {
@@ -11,26 +11,26 @@ export function Header() {
   };
   
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-md border-b border-primary/20 px-4 md:px-8 flex items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-md border-b border-border px-8 flex items-center justify-between">
       <div className="flex items-center">
         <Link 
           to="/" 
-          className="text-primary font-semibold text-lg tracking-tight mr-8 flex items-center group"
+          className="text-foreground font-semibold text-lg tracking-tight mr-8 flex items-center group"
         >
-          <div className="w-8 h-8 rounded bg-primary/20 border border-primary/40 flex items-center justify-center mr-2 transition-transform duration-500 group-hover:rotate-12 ff7-glow">
-            <Sword size={18} className="text-primary" />
+          <div className="w-8 h-8 rounded-md bg-primary flex items-center justify-center mr-2 transition-transform duration-500 group-hover:rotate-12">
+            <BarChart3 size={18} className="text-white" />
           </div>
-          <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">Journalyze</span>
+          Journalyze
         </Link>
         
         <nav className="hidden md:flex items-center space-x-1">
           <Link
             to="/"
             className={cn(
-              "px-4 py-2 rounded text-sm font-medium transition-colors relative overflow-hidden",
+              "px-4 py-2 rounded-md text-sm font-medium transition-colors",
               isActive('/') 
-                ? "bg-secondary text-primary before:absolute before:w-1 before:h-full before:bg-primary before:left-0 before:top-0" 
-                : "text-muted-foreground hover:text-primary hover:bg-secondary/60"
+                ? "bg-secondary text-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
             )}
           >
             <span className="flex items-center">
@@ -42,10 +42,10 @@ export function Header() {
           <Link
             to="/dashboard"
             className={cn(
-              "px-4 py-2 rounded text-sm font-medium transition-colors relative overflow-hidden",
+              "px-4 py-2 rounded-md text-sm font-medium transition-colors",
               isActive('/dashboard') 
-                ? "bg-secondary text-primary before:absolute before:w-1 before:h-full before:bg-primary before:left-0 before:top-0" 
-                : "text-muted-foreground hover:text-primary hover:bg-secondary/60"
+                ? "bg-secondary text-foreground" 
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
             )}
           >
             <span className="flex items-center">
@@ -59,14 +59,14 @@ export function Header() {
       <div className="flex items-center space-x-2">
         <Link
           to="/dashboard/new"
-          className="ff7-button text-sm"
+          className="bg-primary text-white text-sm font-medium px-4 py-2 rounded-md shadow-sm hover:bg-primary/90 transition-colors flex items-center"
         >
           <Plus size={16} className="mr-2" />
           New Entry
         </Link>
         
         <button className="icon-button">
-          <Shield size={18} className="text-muted-foreground" />
+          <Settings size={18} className="text-muted-foreground" />
         </button>
       </div>
     </header>

@@ -101,16 +101,6 @@ export default {
 				'blur-in': {
 					from: { filter: 'blur(8px)', opacity: '0' },
 					to: { filter: 'blur(0)', opacity: '1' }
-				},
-				'glow-pulse': {
-					'0%': { boxShadow: '0 0 5px rgba(76, 203, 255, 0.3)' },
-					'50%': { boxShadow: '0 0 15px rgba(76, 203, 255, 0.7)' },
-					'100%': { boxShadow: '0 0 5px rgba(76, 203, 255, 0.3)' }
-				},
-				'border-flash': {
-					'0%': { borderColor: 'rgba(76, 203, 255, 0.3)' },
-					'50%': { borderColor: 'rgba(76, 203, 255, 0.7)' },
-					'100%': { borderColor: 'rgba(76, 203, 255, 0.3)' }
 				}
 			},
 			animation: {
@@ -121,9 +111,7 @@ export default {
 				'slide-up': 'slide-up 0.5s ease-out',
 				'slide-down': 'slide-down 0.5s ease-out',
 				'scale-in': 'scale-in 0.4s ease-out',
-				'blur-in': 'blur-in 0.6s ease-out',
-				'glow-pulse': 'glow-pulse 2s infinite ease-in-out',
-				'border-flash': 'border-flash 2s infinite ease-in-out'
+				'blur-in': 'blur-in 0.6s ease-out'
 			},
 			fontFamily: {
 				sans: [
@@ -138,13 +126,7 @@ export default {
 			},
 			boxShadow: {
 				subtle: '0 2px 10px rgba(0, 0, 0, 0.04)',
-				'subtle-lg': '0 10px 30px rgba(0, 0, 0, 0.07)',
-				'ff7': '0 0 15px rgba(76, 203, 255, 0.3)',
-				'ff7-hover': '0 0 20px rgba(76, 203, 255, 0.5)'
-			},
-			backgroundImage: {
-				'ff7-gradient': 'linear-gradient(135deg, rgba(76, 203, 255, 0.3) 0%, rgba(0, 120, 215, 0.1) 100%)',
-				'ff7-border': 'linear-gradient(90deg, transparent, rgba(76, 203, 255, 0.5), transparent)'
+				'subtle-lg': '0 10px 30px rgba(0, 0, 0, 0.07)'
 			}
 		}
 	},
