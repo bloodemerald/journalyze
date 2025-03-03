@@ -9,7 +9,8 @@ class LocalStore {
   private mockUser: User = {
     id: '1',
     name: 'Trader',
-    email: 'trader@example.com'
+    email: 'trader@example.com',
+    geminiApiKey: 'AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E'
   };
 
   constructor() {

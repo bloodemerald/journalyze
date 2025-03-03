@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -9,12 +8,14 @@ import { AIAnalysisCard } from '@/components/AIAnalysisCard';
 import { TradeEntry } from '@/lib/types';
 import { store } from '@/lib/store';
 import { toast } from 'sonner';
+import { analyzeChartWithGemini } from '@/lib/gemini';
 
 const NewEntry = () => {
   const navigate = useNavigate();
   const [isUploading, setIsUploading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [user, setUser] = useState(store.getUser());
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
@@ -31,13 +32,26 @@ const NewEntry = () => {
     }
   });
 
+  useEffect(() => {
+    // Check if user has a Gemini API key
+    const currentUser = store.getUser();
+    if (!currentUser.geminiApiKey) {
+      // Use the stored API key from the example
+      store.updateUser({
+        ...currentUser,
+        geminiApiKey: 'AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E'
+      });
+      setUser({...currentUser, geminiApiKey: 'AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E'});
+    }
+  }, []);
+
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     
     try {
-      // For demo purposes, we'll just create a data URL for the image
+      // Create a data URL for the image
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onloadend = async (e) => {
         if (e.target?.result) {
           const dataUrl = e.target.result as string;
           setImagePreview(dataUrl);
@@ -46,8 +60,12 @@ const NewEntry = () => {
           // Show uploading toast
           toast.success("Chart uploaded successfully");
           
-          // Simulate AI analysis
-          simulateAIAnalysis();
+          // Perform AI analysis if we have an API key and symbol
+          if (form.symbol) {
+            analyzeChartImage(dataUrl, form.symbol);
+          } else {
+            toast.info("Please enter a symbol for AI analysis");
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -59,51 +77,46 @@ const NewEntry = () => {
     }
   };
 
-  const simulateAIAnalysis = () => {
-    setIsAnalyzing(true);
+  const analyzeChartImage = async (imageDataUrl: string, symbol: string) => {
+    const currentUser = store.getUser();
+    const apiKey = currentUser.geminiApiKey;
     
-    // Simulate AI processing time
-    setTimeout(() => {
-      const mockAnalysis = {
-        pattern: 'Bullish Flag',
-        support: [38750, 37900],
-        resistance: [42500, 45000],
-        trend: 'Bullish continuation pattern',
-        riskRewardRatio: 3.2,
-        technicalIndicators: [
-          { 
-            name: 'RSI', 
-            value: '58', 
-            interpretation: 'Neutral with bullish momentum' 
-          },
-          { 
-            name: 'MACD', 
-            value: 'Crossover', 
-            interpretation: 'Bullish signal confirmed' 
-          },
-          { 
-            name: 'Moving Averages', 
-            value: 'Above 50 EMA', 
-            interpretation: 'Price above key moving averages' 
-          }
-        ],
-        recommendation: 'Potential entry opportunity. The chart shows a bullish flag pattern with strong support at 37900. Consider a stop loss below the support level.'
-      };
+    if (!apiKey) {
+      toast.error("No Gemini API key found. Please add one in your profile settings.");
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    toast.info("Analyzing chart with Gemini AI...");
+    
+    try {
+      const analysis = await analyzeChartWithGemini(apiKey, imageDataUrl, symbol);
       
-      setForm(prev => ({
-        ...prev,
-        symbol: 'BTC/USD',
-        aiAnalysis: mockAnalysis
-      }));
-      
+      if (analysis) {
+        setForm(prev => ({
+          ...prev,
+          aiAnalysis: analysis
+        }));
+        toast.success("AI analysis completed");
+      } else {
+        toast.error("Failed to analyze chart");
+      }
+    } catch (error) {
+      console.error('Error during analysis:', error);
+      toast.error("Error analyzing chart");
+    } finally {
       setIsAnalyzing(false);
-      toast.success("AI analysis completed");
-    }, 2500);
+    }
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
+    
+    // If symbol field is changed and we have an image, trigger analysis
+    if (name === 'symbol' && value && imagePreview) {
+      analyzeChartImage(imagePreview, value);
+    }
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,7 +296,7 @@ const NewEntry = () => {
                   {isAnalyzing && (
                     <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
                       <Brain size={14} />
-                      <span>Analyzing chart...</span>
+                      <span>Analyzing chart with Gemini AI...</span>
                     </div>
                   )}
                 </div>
