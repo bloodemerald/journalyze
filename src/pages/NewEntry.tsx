@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Save } from 'lucide-react';
@@ -5,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { UploadArea } from '@/components/UploadArea';
 import { AIAnalysisCard } from '@/components/AIAnalysisCard';
+import { PreTradeChecklist } from '@/components/PreTradeChecklist';
 import { TradeEntry } from '@/lib/types';
 import { store } from '@/lib/store';
 import { toast } from 'sonner';
@@ -17,6 +19,7 @@ const NewEntry = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [user, setUser] = useState(store.getUser());
   const [apiError, setApiError] = useState<string | null>(null);
+  const [checklistComplete, setChecklistComplete] = useState(false);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
@@ -160,6 +163,12 @@ const NewEntry = () => {
       return;
     }
     
+    // Warn if checklist is not complete
+    if (!checklistComplete) {
+      toast.warning("Please complete the pre-trade checklist before saving");
+      return;
+    }
+    
     try {
       // Save entry
       const newEntry = store.addEntry(form as TradeEntry);
@@ -189,7 +198,7 @@ const NewEntry = () => {
           
           <button
             onClick={handleSubmit}
-            className="px-5 py-2.5 bg-primary text-white rounded-md flex items-center font-medium"
+            className={`px-5 py-2.5 bg-primary text-white rounded-md flex items-center font-medium ${!checklistComplete ? 'opacity-70' : ''}`}
           >
             <Save size={16} className="mr-2" />
             Save Entry
@@ -275,6 +284,12 @@ const NewEntry = () => {
                     />
                   </div>
                 </div>
+                
+                {/* Add the Pre-Trade Checklist */}
+                <PreTradeChecklist 
+                  onChecklistComplete={setChecklistComplete}
+                  className="mt-6 bg-card rounded-lg p-4 border"
+                />
                 
                 <div>
                   <label className="block font-medium mb-2">Notes</label>

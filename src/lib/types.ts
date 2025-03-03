@@ -24,6 +24,7 @@ export interface TradeEntry {
   notes?: string;
   profit?: number;
   profitPercentage?: number;
+  checklistCompleted?: boolean;
 }
 
 export interface User {
