@@ -122,9 +122,9 @@ class LocalStore {
     if (completedTrades.length === 0) {
       return {
         totalTrades: 0,
-        winRate: 0,
-        averageProfit: 0,
-        profitFactor: 0
+        winRate: '0',
+        averageProfit: '0',
+        profitFactor: '0'
       };
     }
     
