@@ -62,12 +62,29 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Tron-specific colors
+				tron: {
+					'blue': '#00BFFF',
+					'cyan': '#00FFFF',
+					'dark': '#000D19',
+					'darkBlue': '#001B29',
+					'black': '#000000',
+					'gridline': '#004B66',
+					'glow': '#00AAEE',
 				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
+			},
+			boxShadow: {
+				'tron': '0 0 5px theme("colors.tron.blue"), 0 0 20px theme("colors.tron.glow")',
+				'tron-sm': '0 0 2px theme("colors.tron.blue"), 0 0 10px theme("colors.tron.glow")',
+				'tron-lg': '0 0 10px theme("colors.tron.blue"), 0 0 30px theme("colors.tron.glow")',
+				'subtle': '0 2px 10px rgba(0, 0, 0, 0.04)',
+				'subtle-lg': '0 10px 30px rgba(0, 0, 0, 0.07)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -101,6 +118,14 @@ export default {
 				'blur-in': {
 					from: { filter: 'blur(8px)', opacity: '0' },
 					to: { filter: 'blur(0)', opacity: '1' }
+				},
+				'pulse-glow': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.6' }
+				},
+				'grid-flow': {
+					'0%': { backgroundPosition: '0% 0%' },
+					'100%': { backgroundPosition: '100% 100%' }
 				}
 			},
 			animation: {
@@ -111,7 +136,9 @@ export default {
 				'slide-up': 'slide-up 0.5s ease-out',
 				'slide-down': 'slide-down 0.5s ease-out',
 				'scale-in': 'scale-in 0.4s ease-out',
-				'blur-in': 'blur-in 0.6s ease-out'
+				'blur-in': 'blur-in 0.6s ease-out',
+				'pulse-glow': 'pulse-glow 2s infinite',
+				'grid-flow': 'grid-flow 20s infinite linear'
 			},
 			fontFamily: {
 				sans: [
@@ -124,10 +151,10 @@ export default {
 					'sans-serif'
 				]
 			},
-			boxShadow: {
-				subtle: '0 2px 10px rgba(0, 0, 0, 0.04)',
-				'subtle-lg': '0 10px 30px rgba(0, 0, 0, 0.07)'
-			}
+			backgroundImage: {
+				'tron-grid': 'linear-gradient(to right, theme("colors.tron.gridline") 1px, transparent 1px), linear-gradient(to bottom, theme("colors.tron.gridline") 1px, transparent 1px)',
+				'tron-glow': 'radial-gradient(circle, rgba(0,170,238,0.2) 0%, rgba(0,27,41,0) 70%)',
+			},
 		}
 	},
 	plugins: [require("tailwindcss-animate")],

@@ -28,25 +28,25 @@ export function PreTradeChecklist({ onChecklistComplete, className }: PreTradeCh
       id: 'trend',
       label: 'Trend Alignment',
       description: 'Confirm the trade aligns with the overall market trend',
-      icon: <TrendingUp size={18} />
+      icon: <TrendingUp size={18} className="text-tron-cyan" />
     },
     {
       id: 'timeframe',
       label: 'Timeframe Alignment',
       description: 'Verify the trade matches your target timeframe strategy',
-      icon: <Timer size={18} />
+      icon: <Timer size={18} className="text-tron-cyan" />
     },
     {
       id: 'risk',
       label: 'Risk Management',
       description: 'Ensure position size follows your risk management rules',
-      icon: <ShieldAlert size={18} />
+      icon: <ShieldAlert size={18} className="text-tron-cyan" />
     },
     {
       id: 'setup',
       label: 'Setup Validation',
       description: 'Confirm all trade entry criteria are met',
-      icon: <FileCheck size={18} />
+      icon: <FileCheck size={18} className="text-tron-cyan" />
     }
   ];
 
@@ -67,13 +67,13 @@ export function PreTradeChecklist({ onChecklistComplete, className }: PreTradeCh
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold">Pre-Trade Checklist</h3>
+        <h3 className="text-lg font-semibold text-tron-cyan tron-text-glow">Pre-Trade Checklist</h3>
         <div 
           className={cn(
-            "text-xs font-medium py-1 px-3 rounded-full", 
+            "text-xs font-medium py-1 px-3 rounded-sm", 
             allChecked 
-              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-              : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
+              ? "bg-tron-blue/20 text-tron-cyan border border-tron-blue/50 shadow-tron-sm"
+              : "bg-tron-darkBlue text-tron-blue/80 border border-tron-blue/30"
           )}
         >
           {allChecked ? "All Confirmed" : "Confirmation Required"}
@@ -85,19 +85,19 @@ export function PreTradeChecklist({ onChecklistComplete, className }: PreTradeCh
           <div 
             key={item.id}
             className={cn(
-              "flex items-start gap-3 p-3 rounded-lg border transition-colors cursor-pointer",
+              "flex items-start gap-3 p-3 rounded-sm border transition-all duration-300 cursor-pointer",
               checkedItems[item.id] 
-                ? "bg-secondary border-primary/20 dark:bg-secondary/70" 
-                : "bg-white hover:bg-secondary/50 dark:bg-card dark:hover:bg-secondary/30"
+                ? "bg-tron-blue/10 border-tron-blue/40 shadow-tron-sm" 
+                : "bg-tron-darkBlue hover:bg-tron-blue/5 border-tron-blue/20"
             )}
             onClick={() => toggleItem(item.id)}
           >
             <div 
               className={cn(
-                "flex-shrink-0 w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-colors",
+                "flex-shrink-0 w-5 h-5 mt-0.5 rounded-sm border flex items-center justify-center transition-colors",
                 checkedItems[item.id] 
-                  ? "bg-primary border-primary text-white" 
-                  : "border-input bg-background"
+                  ? "bg-tron-blue border-tron-cyan text-white shadow-tron-sm" 
+                  : "border-tron-blue/40 bg-tron-dark"
               )}
             >
               {checkedItems[item.id] && <Check size={12} className="stroke-[3px]" />}
@@ -105,10 +105,18 @@ export function PreTradeChecklist({ onChecklistComplete, className }: PreTradeCh
             
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">{item.icon}</span>
-                <h4 className="text-sm font-medium">{item.label}</h4>
+                <span className={cn(
+                  checkedItems[item.id] ? "text-tron-cyan" : "text-tron-blue/70"
+                )}>{item.icon}</span>
+                <h4 className={cn(
+                  "text-sm font-medium",
+                  checkedItems[item.id] ? "text-tron-cyan" : "text-foreground"
+                )}>{item.label}</h4>
               </div>
-              <p className="text-xs text-muted-foreground">{item.description}</p>
+              <p className={cn(
+                "text-xs",
+                checkedItems[item.id] ? "text-tron-blue/80" : "text-muted-foreground"
+              )}>{item.description}</p>
             </div>
           </div>
         ))}

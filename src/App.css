@@ -1,8 +1,59 @@
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1rem;
   text-align: center;
+}
+
+/* Tron-specific styles */
+.tron-text-glow {
+  text-shadow: 0 0 5px #00BFFF, 0 0 10px #00BFFF80;
+}
+
+.tron-bg {
+  background-color: #000D19;
+  background-image: 
+    radial-gradient(circle at 50% 50%, rgba(0, 170, 238, 0.1) 0%, rgba(0, 13, 25, 0) 70%),
+    linear-gradient(to right, rgba(0, 75, 102, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 75, 102, 0.07) 1px, transparent 1px);
+  background-size: 100% 100%, 20px 20px, 20px 20px;
+  background-position: 0 0, 0 0, 0 0;
+}
+
+.tron-dashboard-bg {
+  position: relative;
+}
+
+.tron-dashboard-bg::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 250px;
+  background: linear-gradient(to bottom, rgba(0, 170, 238, 0.05) 0%, rgba(0, 13, 25, 0) 100%);
+  z-index: -1;
+}
+
+.tron-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, #00BFFF80, transparent);
+}
+
+.tron-skeleton {
+  background: linear-gradient(90deg, #001B29 25%, #00294d 50%, #001B29 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 .logo {
@@ -11,11 +62,13 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+  filter: drop-shadow(0 0 2em #00BFFF);
 }
+
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+  filter: drop-shadow(0 0 2em #00BFFF);
 }
 
 @keyframes logo-spin {
@@ -38,5 +91,5 @@
 }
 
 .read-the-docs {
-  color: #888;
+  color: #00BFFF;
 }
