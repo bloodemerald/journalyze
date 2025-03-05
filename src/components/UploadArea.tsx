@@ -18,6 +18,11 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Reset chart ready state when symbol changes
+  useEffect(() => {
+    setChartReady(false);
+  }, [symbol]);
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
@@ -59,8 +64,8 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
   };
 
   const captureChart = async () => {
-    if (!containerRef.current || !chartReady) {
-      toast.error("Chart is not fully loaded yet");
+    if (!containerRef.current) {
+      toast.error("Chart container not found");
       return;
     }
 
@@ -74,6 +79,7 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
         useCORS: true,
         backgroundColor: '#001B29',
         scale: 2, // Higher resolution
+        logging: true,
       });
       
       // Convert canvas to blob
@@ -84,7 +90,8 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
         }
         
         // Convert blob to file
-        const file = new File([blob], `${symbol.replace(':', '_')}_chart.png`, { type: 'image/png' });
+        const fileName = `${symbol?.replace(':', '_') || 'chart'}_${new Date().getTime()}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
         
         // Create preview
         const reader = new FileReader();
@@ -190,4 +197,3 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
     </div>
   );
 }
-

@@ -43,14 +43,8 @@ export function TradingViewChart({
     // Update symbol when it changes
     if (chartRef.current && symbol) {
       try {
-        // Check if the widget has the setSymbol method
-        if (chartRef.current.iframe?.contentWindow?.postMessage) {
-          // Send message to change symbol
-          chartRef.current.iframe.contentWindow.postMessage({
-            name: 'set-symbol',
-            data: { symbol }
-          }, '*');
-        }
+        // Reinitialize the widget with the new symbol
+        initializeWidget();
       } catch (error) {
         console.error('Error updating TradingView symbol:', error);
       }
@@ -58,14 +52,18 @@ export function TradingViewChart({
   }, [symbol]);
 
   const initializeWidget = () => {
-    if (!containerRef.current || !window.TradingView) return;
+    if (!containerRef.current || typeof window === 'undefined' || !window.TradingView) return;
     
     // Clear any existing chart
     containerRef.current.innerHTML = '';
     
+    // Create a unique ID for this chart instance
+    const containerId = `tradingview_chart_${Math.random().toString(36).substring(2, 9)}`;
+    containerRef.current.id = containerId;
+    
     // Create new widget
     chartRef.current = new window.TradingView.widget({
-      container_id: containerRef.current.id,
+      container_id: containerId,
       symbol: symbol,
       interval: interval,
       toolbar_bg: '#001B29',
@@ -106,7 +104,6 @@ export function TradingViewChart({
   return (
     <div className={className} style={{ height: '100%', width: '100%' }}>
       <div 
-        id={`tradingview_chart_${Math.random().toString(36).substring(2, 9)}`} 
         ref={containerRef} 
         style={{ height: '100%', width: '100%' }}
       />
