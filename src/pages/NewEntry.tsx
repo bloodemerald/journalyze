@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Save } from 'lucide-react';
@@ -37,10 +36,8 @@ const NewEntry = () => {
   });
 
   useEffect(() => {
-    // Check if user has a Gemini API key
     const currentUser = store.getUser();
     if (!currentUser.geminiApiKey) {
-      // Use the stored API key from the example
       store.updateUser({
         ...currentUser,
         geminiApiKey: 'AIzaSyBHjClGIarRwpPH06imDJ43eSGU2rTIC6E'
@@ -54,7 +51,6 @@ const NewEntry = () => {
     setApiError(null);
     
     try {
-      // Create a data URL for the image
       const reader = new FileReader();
       reader.onloadend = async (e) => {
         if (e.target?.result) {
@@ -62,10 +58,8 @@ const NewEntry = () => {
           setImagePreview(dataUrl);
           setForm(prev => ({ ...prev, chartImageUrl: dataUrl }));
           
-          // Show uploading toast
-          toast.success("Chart uploaded successfully");
+          toast.success("Chart captured successfully");
           
-          // Perform AI analysis if we have an API key and symbol
           if (form.symbol) {
             analyzeChartImage(dataUrl, form.symbol);
           } else {
@@ -76,7 +70,7 @@ const NewEntry = () => {
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading image:', error);
-      toast.error("Failed to upload chart");
+      toast.error("Failed to capture chart");
     } finally {
       setIsUploading(false);
     }
@@ -120,7 +114,6 @@ const NewEntry = () => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
     
-    // If symbol field is changed and we have an image, trigger analysis
     if (name === 'symbol' && value && imagePreview) {
       analyzeChartImage(imagePreview, value);
     }
@@ -157,24 +150,20 @@ const NewEntry = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if minimum required fields are filled
     if (!form.symbol || !form.chartImageUrl) {
       toast.error("Please provide a symbol and upload a chart image");
       return;
     }
     
-    // Warn if checklist is not complete
     if (!checklistComplete) {
       toast.warning("Please complete the pre-trade checklist before saving");
       return;
     }
     
     try {
-      // Save entry
       const newEntry = store.addEntry(form as TradeEntry);
       toast.success("Trade entry saved successfully");
       
-      // Navigate to the entry detail page
       navigate(`/dashboard/${newEntry.id}`);
     } catch (error) {
       console.error('Error saving entry:', error);
@@ -210,7 +199,6 @@ const NewEntry = () => {
           
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid md:grid-cols-2 gap-8">
-              {/* Left Column - Trade Details */}
               <div className="space-y-6">
                 <div>
                   <label className="block font-medium mb-2">Symbol</label>
@@ -219,7 +207,7 @@ const NewEntry = () => {
                     name="symbol"
                     value={form.symbol || ''}
                     onChange={handleChange}
-                    placeholder="e.g. BTC/USD"
+                    placeholder="e.g. BINANCE:BTCUSDT"
                     className="input-field w-full"
                     required
                   />
@@ -285,7 +273,6 @@ const NewEntry = () => {
                   </div>
                 </div>
                 
-                {/* Add the Pre-Trade Checklist */}
                 <PreTradeChecklist 
                   onChecklistComplete={setChecklistComplete}
                   className="mt-6 bg-card rounded-lg p-4 border"
@@ -303,13 +290,13 @@ const NewEntry = () => {
                 </div>
               </div>
               
-              {/* Right Column - Chart Upload & AI Analysis */}
               <div className="space-y-6">
                 <div>
-                  <label className="block font-medium mb-2">Chart Image</label>
+                  <label className="block font-medium mb-2">Chart</label>
                   <UploadArea 
                     onImageUpload={handleImageUpload} 
-                    className="h-48"
+                    symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
+                    className="h-[320px]"
                   />
                   
                   {isAnalyzing && (
