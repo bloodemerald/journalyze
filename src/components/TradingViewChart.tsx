@@ -94,7 +94,8 @@ export function TradingViewChart({
     });
     
     // Notify parent when chart is ready
-    if (onChartReady && chartRef.current) {
+    if (onChartReady) {
+      // TradingView widget has onChartReady method on the widget itself
       chartRef.current.onChartReady(() => {
         onChartReady();
       });

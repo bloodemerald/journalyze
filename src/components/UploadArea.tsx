@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, X, ArrowLeftRight } from 'lucide-react';
+import { Camera, X, ArrowLeftRight, Move } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TradingViewChart } from './TradingViewChart';
 import { toast } from 'sonner';
@@ -140,57 +140,72 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
         </button>
       </div>
       
-      <div
-        className={cn(
-          "border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden",
-          "border-muted hover:border-muted-foreground/50",
-          className
-        )}
-      >
-        {preview ? (
-          <>
-            <img 
-              src={preview} 
-              alt="Preview" 
-              className="absolute inset-0 w-full h-full object-contain p-4"
-            />
-            <button 
-              onClick={clearPreview}
-              className="absolute top-2 right-2 bg-secondary rounded-full p-1 shadow-sm hover:bg-secondary/80 transition-colors"
-            >
-              <X size={16} className="text-primary" />
-            </button>
-            <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium">
-              {chartMode ? 'Click to capture new chart' : 'Click to upload different image'}
+      {/* Main chart area and controls */}
+      <div className="relative">
+        {/* Chart container */}
+        <div
+          className={cn(
+            "border-2 border-dashed rounded-xl transition-all duration-300 relative overflow-hidden",
+            "border-muted hover:border-muted-foreground/50",
+            className
+          )}
+        >
+          {preview ? (
+            <>
+              <img 
+                src={preview} 
+                alt="Preview" 
+                className="absolute inset-0 w-full h-full object-contain p-4"
+              />
+              <button 
+                onClick={clearPreview}
+                className="absolute top-2 right-2 bg-secondary rounded-full p-1 shadow-sm hover:bg-secondary/80 transition-colors"
+              >
+                <X size={16} className="text-primary" />
+              </button>
+              <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium">
+                {chartMode ? 'Click to capture new chart' : 'Click to upload different image'}
+              </div>
+            </>
+          ) : chartMode ? (
+            <div ref={containerRef} className="w-full h-full relative">
+              <TradingViewChart 
+                symbol={symbol || 'BINANCE:BTCUSDT'} 
+                onChartReady={() => setChartReady(true)}
+              />
             </div>
-          </>
-        ) : chartMode ? (
-          <div ref={containerRef} className="w-full h-full relative">
-            <TradingViewChart 
-              symbol={symbol || 'BINANCE:BTCUSDT'} 
-              onChartReady={() => setChartReady(true)}
-            />
-            <div className="absolute bottom-4 right-4 z-10">
+          ) : (
+            <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <Camera size={24} className="text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium mb-1">Drop your trading chart here</p>
+              <p className="text-sm text-muted-foreground/70">or click to browse files</p>
+              <p className="mt-4 text-xs text-muted-foreground/60 max-w-xs text-center">
+                Supported formats: PNG, JPG, JPEG, GIF
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {/* Sleek capture button box - positioned below the chart */}
+        {chartMode && !preview && (
+          <div className="mt-4 flex justify-center">
+            <div className="capture-button-box">
               <button
                 onClick={captureChart}
                 disabled={!chartReady}
-                className="capture-btn"
+                className="capture-btn-outside flex items-center gap-2 px-4 py-2"
                 title="Capture Chart"
               >
-                <Camera size={20} />
+                <Camera size={18} />
+                <span>Capture Chart</span>
               </button>
+              <div className="capture-btn-status flex items-center ml-3">
+                <div className={`status-indicator ${chartReady ? 'status-ready' : 'status-loading'}`}></div>
+                <span className="text-xs ml-2">{chartReady ? 'Chart Ready' : 'Loading...'}</span>
+              </div>
             </div>
-          </div>
-        ) : (
-          <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-              <Camera size={24} className="text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground font-medium mb-1">Drop your trading chart here</p>
-            <p className="text-sm text-muted-foreground/70">or click to browse files</p>
-            <p className="mt-4 text-xs text-muted-foreground/60 max-w-xs text-center">
-              Supported formats: PNG, JPG, JPEG, GIF
-            </p>
           </div>
         )}
       </div>

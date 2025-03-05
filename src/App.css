@@ -149,6 +149,80 @@
   box-shadow: none;
 }
 
+/* New sleek capture button box */
+.capture-button-box {
+  display: flex;
+  align-items: center;
+  background: #1A1F2C;
+  border: 1px solid rgba(0, 191, 255, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 191, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.capture-button-box:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 191, 255, 0.2), 0 0 20px rgba(0, 191, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.capture-btn-outside {
+  background: linear-gradient(180deg, #00AAEE 0%, #0077CC 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.capture-btn-outside:hover {
+  background: linear-gradient(180deg, #00BFFF 0%, #0088DD 100%);
+  transform: scale(1.02);
+}
+
+.capture-btn-outside:active {
+  transform: scale(0.98);
+}
+
+.capture-btn-outside:disabled {
+  background: linear-gradient(180deg, #403E43 0%, #221F26 100%);
+  color: #8E9196;
+  cursor: not-allowed;
+}
+
+.capture-btn-status {
+  color: #aaadb0;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-ready {
+  background-color: #00BFFF;
+  box-shadow: 0 0 10px rgba(0, 191, 255, 0.8);
+}
+
+.status-loading {
+  background-color: #8E9196;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
 /* Input field styling */
 .input-field {
   background-color: rgba(0, 27, 41, 0.8);
