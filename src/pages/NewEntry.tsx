@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Save } from 'lucide-react';
@@ -175,7 +176,7 @@ const NewEntry = () => {
     <div className="min-h-screen bg-background pb-20">
       <Header />
       
-      <main className="pt-24 px-6 md:px-8 max-w-5xl mx-auto">
+      <main className="pt-24 px-6 md:px-8 max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <Link 
             to="/dashboard" 
@@ -195,24 +196,53 @@ const NewEntry = () => {
         </div>
         
         <div className="animate-fade-in">
-          <h1 className="text-3xl font-bold mb-6">New Trade Entry</h1>
+          <h1 className="text-3xl font-bold mb-8 text-center">New Trade Entry</h1>
+          
+          {/* Chart Section - Full Width */}
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-4">
+              <div className="w-1/3">
+                <label className="block font-medium mb-2">Symbol</label>
+                <input
+                  type="text"
+                  name="symbol"
+                  value={form.symbol || ''}
+                  onChange={handleChange}
+                  placeholder="e.g. BINANCE:BTCUSDT"
+                  className="input-field w-full"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="w-full">
+              <UploadArea 
+                onImageUpload={handleImageUpload} 
+                symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
+                className="h-[500px]" // Make the chart taller
+              />
+              
+              {isAnalyzing && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
+                  <Brain size={14} />
+                  <span>Analyzing chart with Gemini AI...</span>
+                </div>
+              )}
+              
+              {apiError && (
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
+                  <p className="font-medium">API Error</p>
+                  <p>{apiError}</p>
+                  <p className="mt-2 text-xs">Note: Gemini Pro Vision was deprecated. The app now uses gemini-1.5-flash model.</p>
+                </div>
+              )}
+            </div>
+          </div>
           
           <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Trade Details - Left Column */}
               <div className="space-y-6">
-                <div>
-                  <label className="block font-medium mb-2">Symbol</label>
-                  <input
-                    type="text"
-                    name="symbol"
-                    value={form.symbol || ''}
-                    onChange={handleChange}
-                    placeholder="e.g. BINANCE:BTCUSDT"
-                    className="input-field w-full"
-                    required
-                  />
-                </div>
-                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block font-medium mb-2">Position</label>
@@ -273,11 +303,6 @@ const NewEntry = () => {
                   </div>
                 </div>
                 
-                <PreTradeChecklist 
-                  onChecklistComplete={setChecklistComplete}
-                  className="mt-6 bg-card rounded-lg p-4 border"
-                />
-                
                 <div>
                   <label className="block font-medium mb-2">Notes</label>
                   <textarea
@@ -290,35 +315,17 @@ const NewEntry = () => {
                 </div>
               </div>
               
+              {/* Analysis and Checklist - Right Column */}
               <div className="space-y-6">
-                <div>
-                  <label className="block font-medium mb-2">Chart</label>
-                  <UploadArea 
-                    onImageUpload={handleImageUpload} 
-                    symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
-                    className="h-[320px]"
-                  />
-                  
-                  {isAnalyzing && (
-                    <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-                      <Brain size={14} />
-                      <span>Analyzing chart with Gemini AI...</span>
-                    </div>
-                  )}
-                  
-                  {apiError && (
-                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-                      <p className="font-medium">API Error</p>
-                      <p>{apiError}</p>
-                      <p className="mt-2 text-xs">Note: Gemini Pro Vision was deprecated. The app now uses gemini-1.5-flash model.</p>
-                    </div>
-                  )}
-                </div>
-                
                 <div>
                   <label className="block font-medium mb-2">AI Analysis</label>
                   <AIAnalysisCard analysis={form.aiAnalysis} />
                 </div>
+                
+                <PreTradeChecklist 
+                  onChecklistComplete={setChecklistComplete}
+                  className="mt-6 bg-card rounded-lg p-4 border"
+                />
               </div>
             </div>
           </form>

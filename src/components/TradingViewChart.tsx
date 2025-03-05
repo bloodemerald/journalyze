@@ -84,6 +84,15 @@ export function TradingViewChart({
       popup_height: '650',
       withdateranges: true,
       hide_side_toolbar: false,
+      overrides: {
+        "paneProperties.background": "#001B29",
+        "paneProperties.vertGridProperties.color": "rgba(0, 75, 102, 0.1)",
+        "paneProperties.horzGridProperties.color": "rgba(0, 75, 102, 0.1)",
+        "symbolWatermarkProperties.transparency": 90,
+        "scalesProperties.textColor": "#AAA",
+        "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
+        "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
+      }
     });
     
     // Notify parent when chart is ready

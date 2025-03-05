@@ -135,7 +135,7 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
       
       <div
         className={cn(
-          "border-2 border-dashed rounded-xl h-64 flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden",
+          "border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden",
           "border-muted hover:border-muted-foreground/50",
           className
         )}
@@ -167,7 +167,7 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
               <button
                 onClick={captureChart}
                 disabled={!chartReady}
-                className="flex items-center justify-center bg-primary text-white p-2 rounded-full shadow-tron-sm hover:shadow-tron hover:bg-primary/90 transition-all duration-300"
+                className="capture-btn"
                 title="Capture Chart"
               >
                 <Camera size={20} />
@@ -190,3 +190,4 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
     </div>
   );
 }
+
