@@ -24,6 +24,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const [chartReady, setChartReady] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chartContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset chart ready state when symbol changes
   useEffect(() => {
@@ -81,7 +82,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
       
       // Use html2canvas to capture the chart
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(containerRef.current, {
+      const canvas = await html2canvas(chartContainerRef.current || containerRef.current, {
         allowTaint: true,
         useCORS: true,
         backgroundColor: '#001B29',
@@ -158,6 +159,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
           "border-muted hover:border-muted-foreground/50",
           className
         )}
+        ref={containerRef}
       >
         {preview ? (
           <>
@@ -177,7 +179,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
             </div>
           </>
         ) : chartMode ? (
-          <div ref={containerRef} className="w-full h-full relative">
+          <div ref={chartContainerRef} className="w-full h-full relative">
             <TradingViewChart 
               symbol={symbol || 'BINANCE:BTCUSDT'} 
               onChartReady={() => setChartReady(true)}

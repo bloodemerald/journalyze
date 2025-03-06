@@ -9,7 +9,16 @@ interface AIAnalysisCardProps {
 }
 
 export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
-  if (!analysis) {
+  // Enhanced empty state check
+  const isEmpty = !analysis || 
+    (!analysis.pattern && 
+     !analysis.trend && 
+     (!analysis.support || analysis.support.length === 0) && 
+     (!analysis.resistance || analysis.resistance.length === 0) &&
+     (!analysis.technicalIndicators || analysis.technicalIndicators.length === 0) &&
+     !analysis.recommendation);
+  
+  if (isEmpty) {
     return (
       <div className={cn("bg-muted p-6 rounded-xl", className)}>
         <div className="flex items-center gap-3">
@@ -59,7 +68,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
                   key={index}
                   className="text-sm px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-medium"
                 >
-                  {level.toFixed(2)}
+                  {typeof level === 'number' ? level.toFixed(2) : level}
                 </span>
               ))}
             </div>
@@ -75,7 +84,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
                   key={index}
                   className="text-sm px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-medium"
                 >
-                  {level.toFixed(2)}
+                  {typeof level === 'number' ? level.toFixed(2) : level}
                 </span>
               ))}
             </div>

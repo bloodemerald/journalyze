@@ -94,7 +94,7 @@ export function TradingViewChart({
     });
     
     // Notify parent when chart is ready - fix the onChartReady method
-    if (onChartReady && chartRef.current) {
+    if (onChartReady) {
       // TradingView widget doesn't always have onChartReady method available immediately
       // So we need to add a small delay or check if it's available
       setTimeout(() => {
