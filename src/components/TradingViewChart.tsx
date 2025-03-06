@@ -4,8 +4,7 @@ import React, { useEffect, useRef } from 'react';
 interface TradingViewChartProps {
   symbol: string;
   interval?: string;
-  onChartReady?: (symbol?: string) => void;
-  onSymbolChange?: (symbol: string) => void;
+  onChartReady?: () => void;
   className?: string;
 }
 
@@ -13,7 +12,6 @@ export function TradingViewChart({
   symbol = 'BINANCE:BTCUSDT', 
   interval = '1D', 
   onChartReady,
-  onSymbolChange,
   className 
 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,39 +90,13 @@ export function TradingViewChart({
         "scalesProperties.textColor": "#AAA",
         "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
         "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
-      },
-      // Listen for symbol changes in the chart
-      custom_css_url: './tradingview.css',
-      auto_save_delay: 1,
-      loading_screen: { backgroundColor: '#001B29' },
+      }
     });
     
-    // Listen for symbol changes and report them
-    if (chartRef.current) {
+    // Notify parent when chart is ready
+    if (onChartReady && chartRef.current) {
       chartRef.current.onChartReady(() => {
-        // Get current symbol from the widget
-        const currentSymbol = chartRef.current.symbolInterval().split(',')[0];
-        
-        // Format the symbol appropriately
-        const formattedSymbol = currentSymbol || symbol;
-        
-        // Notify parent when symbol changes
-        if (onSymbolChange && formattedSymbol !== symbol) {
-          onSymbolChange(formattedSymbol);
-        }
-        
-        // Add symbol change event listener
-        chartRef.current.chart().onSymbolChanged().subscribe(null, (symbolData: any) => {
-          if (onSymbolChange && symbolData) {
-            const newSymbol = symbolData.name;
-            onSymbolChange(newSymbol);
-          }
-        });
-        
-        // Notify parent when chart is ready
-        if (onChartReady) {
-          onChartReady(formattedSymbol);
-        }
+        onChartReady();
       });
     }
   };

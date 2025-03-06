@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Brain, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { UploadArea } from '@/components/UploadArea';
@@ -74,17 +74,6 @@ const NewEntry = () => {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  const handleSymbolChange = (symbol: string) => {
-    // Extract the simple symbol name without exchange prefix if present
-    let simplifiedSymbol = symbol;
-    if (symbol.includes(':')) {
-      simplifiedSymbol = symbol.split(':')[1];
-    }
-    
-    // Update form with the detected symbol
-    setForm(prev => ({ ...prev, symbol: simplifiedSymbol }));
   };
 
   const analyzeChartImage = async () => {
@@ -237,13 +226,10 @@ const NewEntry = () => {
                   name="symbol"
                   value={form.symbol || ''}
                   onChange={handleChange}
-                  placeholder="e.g. BTCUSDT"
+                  placeholder="e.g. BINANCE:BTCUSDT"
                   className="input-field w-full"
                   required
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Auto-detected from chart or enter manually
-                </p>
               </div>
             </div>
             
@@ -252,8 +238,8 @@ const NewEntry = () => {
                 onImageUpload={handleImageUpload}
                 captureChart={() => {}}
                 symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
-                onSymbolChange={handleSymbolChange}
                 className="h-[500px]" // Make the chart taller
+                ref={uploadAreaRef}
               />
               
               {apiError && (
