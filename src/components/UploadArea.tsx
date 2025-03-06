@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Camera, X, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TradingViewChart } from './TradingViewChart';
@@ -12,12 +12,13 @@ interface UploadAreaProps {
   className?: string;
 }
 
-export function UploadArea({ 
+// Use forwardRef to properly handle the ref from parent component
+export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, UploadAreaProps>(({ 
   onImageUpload, 
   captureChart,
   symbol = 'BINANCE:BTCUSDT', 
   className 
-}: UploadAreaProps) {
+}, ref) => {
   const [chartMode, setChartMode] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
@@ -118,14 +119,10 @@ export function UploadArea({
     }
   };
   
-  // Expose the captureChart method through the ref
-  useEffect(() => {
-    // Register the captureChart function with the parent component
-    if (captureChart && typeof captureChart === 'function') {
-      // We're using a callback approach since we don't want to expose the entire component
-      captureChart = handleCaptureChart;
-    }
-  }, [captureChart]);
+  // Expose the captureChart method through the ref using useImperativeHandle
+  useImperativeHandle(ref, () => ({
+    handleCaptureChart
+  }));
 
   const toggleMode = () => {
     setChartMode(!chartMode);
@@ -201,4 +198,7 @@ export function UploadArea({
       </div>
     </div>
   );
-}
+});
+
+// Add display name for better debugging
+UploadArea.displayName = 'UploadArea';

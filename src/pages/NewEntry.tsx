@@ -22,7 +22,8 @@ const NewEntry = () => {
   const [checklistComplete, setChecklistComplete] = useState(false);
   const [chartCaptured, setChartCaptured] = useState(false);
   
-  const uploadAreaRef = useRef<any>(null);
+  // Fix the ref type - this is important
+  const uploadAreaRef = useRef<{ handleCaptureChart: () => Promise<void> }>(null);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
@@ -84,8 +85,12 @@ const NewEntry = () => {
     
     if (!imagePreview && uploadAreaRef.current) {
       // Try to capture chart first if no image preview exists
+      console.log("No image preview, attempting to capture chart");
       try {
         await uploadAreaRef.current.handleCaptureChart();
+        console.log("Chart capture initiated");
+        // Give a moment for the chart capture to complete
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
         console.error('Error capturing chart:', error);
         toast.error("Failed to capture chart for analysis");
@@ -93,8 +98,9 @@ const NewEntry = () => {
       }
     }
 
-    // If still no preview after attempting capture, show error
+    // Check again to see if we now have a preview
     if (!imagePreview && !form.chartImageUrl) {
+      console.log("Still no chart available after capture attempt");
       toast.error("No chart available to analyze");
       return;
     }
@@ -113,6 +119,7 @@ const NewEntry = () => {
     
     try {
       const dataUrlToAnalyze = imagePreview || form.chartImageUrl as string;
+      console.log("Analyzing chart", Boolean(dataUrlToAnalyze));
       const analysis = await analyzeChartWithGemini(apiKey, dataUrlToAnalyze, form.symbol as string);
       
       if (analysis) {
