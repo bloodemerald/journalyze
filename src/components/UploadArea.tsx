@@ -7,11 +7,17 @@ import { toast } from 'sonner';
 
 interface UploadAreaProps {
   onImageUpload: (file: File) => void;
+  captureChart: () => void;
   symbol?: string;
   className?: string;
 }
 
-export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', className }: UploadAreaProps) {
+export function UploadArea({ 
+  onImageUpload, 
+  captureChart,
+  symbol = 'BINANCE:BTCUSDT', 
+  className 
+}: UploadAreaProps) {
   const [chartMode, setChartMode] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
@@ -63,7 +69,7 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
     }
   };
 
-  const captureChart = async () => {
+  const handleCaptureChart = async () => {
     if (!containerRef.current) {
       toast.error("Chart container not found");
       return;
@@ -111,6 +117,15 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
       toast.error("Failed to capture chart");
     }
   };
+  
+  // Expose the captureChart method through the ref
+  useEffect(() => {
+    // Register the captureChart function with the parent component
+    if (captureChart && typeof captureChart === 'function') {
+      // We're using a callback approach since we don't want to expose the entire component
+      captureChart = handleCaptureChart;
+    }
+  }, [captureChart]);
 
   const toggleMode = () => {
     setChartMode(!chartMode);
@@ -161,7 +176,7 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
               <X size={16} className="text-primary" />
             </button>
             <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium">
-              {chartMode ? 'Click to capture new chart' : 'Click to upload different image'}
+              {chartMode ? 'Chart captured successfully' : 'Click to upload different image'}
             </div>
           </>
         ) : chartMode ? (
@@ -170,16 +185,6 @@ export function UploadArea({ onImageUpload, symbol = 'BINANCE:BTCUSDT', classNam
               symbol={symbol || 'BINANCE:BTCUSDT'} 
               onChartReady={() => setChartReady(true)}
             />
-            <div className="absolute bottom-4 right-4 z-10">
-              <button
-                onClick={captureChart}
-                disabled={!chartReady}
-                className="capture-btn"
-                title="Capture Chart"
-              >
-                <Camera size={20} />
-              </button>
-            </div>
           </div>
         ) : (
           <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">

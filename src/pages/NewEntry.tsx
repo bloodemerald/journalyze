@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Brain, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -20,6 +20,9 @@ const NewEntry = () => {
   const [user, setUser] = useState(store.getUser());
   const [apiError, setApiError] = useState<string | null>(null);
   const [checklistComplete, setChecklistComplete] = useState(false);
+  const [chartCaptured, setChartCaptured] = useState(false);
+  
+  const uploadAreaRef = useRef<any>(null);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
@@ -50,6 +53,7 @@ const NewEntry = () => {
   const handleImageUpload = async (file: File) => {
     setIsUploading(true);
     setApiError(null);
+    setChartCaptured(true);
     
     try {
       const reader = new FileReader();
@@ -60,24 +64,41 @@ const NewEntry = () => {
           setForm(prev => ({ ...prev, chartImageUrl: dataUrl }));
           
           toast.success("Chart captured successfully");
-          
-          if (form.symbol) {
-            analyzeChartImage(dataUrl, form.symbol);
-          } else {
-            toast.info("Please enter a symbol for AI analysis");
-          }
         }
       };
       reader.readAsDataURL(file);
     } catch (error) {
       console.error('Error uploading image:', error);
       toast.error("Failed to capture chart");
+      setChartCaptured(false);
     } finally {
       setIsUploading(false);
     }
   };
 
-  const analyzeChartImage = async (imageDataUrl: string, symbol: string) => {
+  const analyzeChartImage = async () => {
+    if (!form.symbol) {
+      toast.warning("Please enter a symbol before analyzing");
+      return;
+    }
+    
+    if (!imagePreview && uploadAreaRef.current) {
+      // Try to capture chart first if no image preview exists
+      try {
+        await uploadAreaRef.current.handleCaptureChart();
+      } catch (error) {
+        console.error('Error capturing chart:', error);
+        toast.error("Failed to capture chart for analysis");
+        return;
+      }
+    }
+
+    // If still no preview after attempting capture, show error
+    if (!imagePreview && !form.chartImageUrl) {
+      toast.error("No chart available to analyze");
+      return;
+    }
+
     const currentUser = store.getUser();
     const apiKey = currentUser.geminiApiKey;
     
@@ -91,7 +112,8 @@ const NewEntry = () => {
     toast.info("Analyzing chart with Gemini AI...");
     
     try {
-      const analysis = await analyzeChartWithGemini(apiKey, imageDataUrl, symbol);
+      const dataUrlToAnalyze = imagePreview || form.chartImageUrl as string;
+      const analysis = await analyzeChartWithGemini(apiKey, dataUrlToAnalyze, form.symbol as string);
       
       if (analysis) {
         setForm(prev => ({
@@ -114,10 +136,6 @@ const NewEntry = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: value }));
-    
-    if (name === 'symbol' && value && imagePreview) {
-      analyzeChartImage(imagePreview, value);
-    }
   };
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -217,17 +235,12 @@ const NewEntry = () => {
             
             <div className="w-full">
               <UploadArea 
-                onImageUpload={handleImageUpload} 
+                onImageUpload={handleImageUpload}
+                captureChart={() => {}}
                 symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
                 className="h-[500px]" // Make the chart taller
+                ref={uploadAreaRef}
               />
-              
-              {isAnalyzing && (
-                <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground animate-pulse">
-                  <Brain size={14} />
-                  <span>Analyzing chart with Gemini AI...</span>
-                </div>
-              )}
               
               {apiError && (
                 <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
@@ -324,6 +337,10 @@ const NewEntry = () => {
                 
                 <PreTradeChecklist 
                   onChecklistComplete={setChecklistComplete}
+                  onAnalyzeChart={analyzeChartImage}
+                  isAnalyzing={isAnalyzing}
+                  chartCaptured={chartCaptured}
+                  symbol={form.symbol as string}
                   className="mt-6 bg-card rounded-lg p-4 border"
                 />
               </div>
