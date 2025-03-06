@@ -83,14 +83,14 @@ const NewEntry = () => {
       return;
     }
     
-    if (!imagePreview && uploadAreaRef.current) {
+    if (!imagePreview && !form.chartImageUrl && uploadAreaRef.current) {
       // Try to capture chart first if no image preview exists
       console.log("No image preview, attempting to capture chart");
       try {
         await uploadAreaRef.current.handleCaptureChart();
         console.log("Chart capture initiated");
         // Give a moment for the chart capture to complete
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (error) {
         console.error('Error capturing chart:', error);
         toast.error("Failed to capture chart for analysis");
@@ -123,10 +123,61 @@ const NewEntry = () => {
       const analysis = await analyzeChartWithGemini(apiKey, dataUrlToAnalyze, form.symbol as string);
       
       if (analysis) {
+        // Update the form with the analysis results
         setForm(prev => ({
           ...prev,
-          aiAnalysis: analysis
+          aiAnalysis: analysis,
+          // Auto-populate position and sentiment based on AI analysis trend
+          position: analysis.trend?.toLowerCase().includes('bullish') ? 'long' : 
+                   analysis.trend?.toLowerCase().includes('bearish') ? 'short' : 
+                   prev.position,
+          sentiment: analysis.trend?.toLowerCase().includes('bullish') ? 'bullish' : 
+                    analysis.trend?.toLowerCase().includes('bearish') ? 'bearish' : 
+                    prev.sentiment,
         }));
+        
+        // Auto-populate entry and exit prices based on support/resistance levels
+        if (analysis.support?.length > 0 && analysis.resistance?.length > 0) {
+          // If trend is bullish, use first support as entry and first resistance as exit
+          // If trend is bearish, use first resistance as entry and first support as exit
+          const isBullish = analysis.trend?.toLowerCase().includes('bullish');
+          const entryPrice = isBullish ? 
+            Math.min(...analysis.support.filter(level => typeof level === 'number') as number[]) : 
+            Math.max(...analysis.resistance.filter(level => typeof level === 'number') as number[]);
+          
+          const exitPrice = isBullish ? 
+            Math.max(...analysis.resistance.filter(level => typeof level === 'number') as number[]) : 
+            Math.min(...analysis.support.filter(level => typeof level === 'number') as number[]);
+          
+          if (!isNaN(entryPrice) && !isNaN(exitPrice)) {
+            setForm(prev => ({
+              ...prev,
+              entryPrice,
+              exitPrice
+            }));
+            
+            // Calculate profit
+            const position = isBullish ? 'long' : 'short';
+            let profit = 0;
+            let profitPercentage = 0;
+            
+            if (position === 'long') {
+              profit = exitPrice - entryPrice;
+              profitPercentage = (profit / entryPrice) * 100;
+            } else {
+              profit = entryPrice - exitPrice;
+              profitPercentage = (profit / entryPrice) * 100;
+            }
+            
+            setForm(prev => ({
+              ...prev,
+              position,
+              profit,
+              profitPercentage
+            }));
+          }
+        }
+        
         toast.success("AI analysis completed");
       } else {
         throw new Error("Failed to analyze chart");

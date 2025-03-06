@@ -78,7 +78,11 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
     }
 
     try {
+      console.log("Starting chart capture process");
       toast.info("Capturing chart...");
+      
+      // Delay capture slightly to ensure chart is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       // Use html2canvas to capture the chart
       const html2canvas = (await import('html2canvas')).default;
@@ -96,6 +100,8 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
           toast.error("Failed to capture chart");
           return;
         }
+        
+        console.log("Chart captured successfully, converting to file");
         
         // Convert blob to file
         const fileName = `${symbol?.replace(':', '_') || 'chart'}_${new Date().getTime()}.png`;
@@ -128,6 +134,11 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const toggleMode = () => {
     setChartMode(!chartMode);
     setPreview(null);
+  };
+
+  const handleChartReady = () => {
+    console.log("Chart is ready in UploadArea component");
+    setChartReady(true);
   };
 
   return (
@@ -182,7 +193,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
           <div ref={chartContainerRef} className="w-full h-full relative">
             <TradingViewChart 
               symbol={symbol || 'BINANCE:BTCUSDT'} 
-              onChartReady={() => setChartReady(true)}
+              onChartReady={handleChartReady}
             />
           </div>
         ) : (

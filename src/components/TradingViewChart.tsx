@@ -16,6 +16,7 @@ export function TradingViewChart({
 }: TradingViewChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
+  const chartReadyRef = useRef<boolean>(false);
   
   useEffect(() => {
     // Create TradingView widget when component mounts
@@ -57,6 +58,9 @@ export function TradingViewChart({
     // Clear any existing chart
     containerRef.current.innerHTML = '';
     
+    // Reset chart ready state
+    chartReadyRef.current = false;
+    
     // Create a unique ID for this chart instance
     const containerId = `tradingview_chart_${Math.random().toString(36).substring(2, 9)}`;
     containerRef.current.id = containerId;
@@ -90,18 +94,18 @@ export function TradingViewChart({
         "scalesProperties.textColor": "#AAA",
         "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
         "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
+      },
+      // This is the key fix - adding the onChartReady callback from TradingView
+      onChartReady: () => {
+        console.log('Chart is ready!', symbol);
+        chartReadyRef.current = true;
+        
+        // Notify parent when chart is ready
+        if (onChartReady) {
+          onChartReady();
+        }
       }
     });
-    
-    // Notify parent when chart is ready - fix the onChartReady method
-    if (onChartReady) {
-      // TradingView widget doesn't always have onChartReady method available immediately
-      // So we need to add a small delay or check if it's available
-      setTimeout(() => {
-        // Manually call the onChartReady callback
-        onChartReady();
-      }, 1000); // Give the chart some time to initialize
-    }
   };
   
   return (
