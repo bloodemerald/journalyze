@@ -9,6 +9,7 @@ interface UploadAreaProps {
   onImageUpload: (file: File) => void;
   captureChart: () => void;
   symbol?: string;
+  onSymbolChange?: (symbol: string) => void;
   className?: string;
 }
 
@@ -16,18 +17,32 @@ export function UploadArea({
   onImageUpload, 
   captureChart,
   symbol = 'BINANCE:BTCUSDT', 
+  onSymbolChange,
   className 
 }: UploadAreaProps) {
   const [chartMode, setChartMode] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [currentSymbol, setCurrentSymbol] = useState(symbol);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset chart ready state when symbol changes
   useEffect(() => {
     setChartReady(false);
+    setCurrentSymbol(symbol);
   }, [symbol]);
+
+  // When chart is loaded, update the symbol if it differs from the passed symbol
+  const handleChartReady = (detectedSymbol?: string) => {
+    setChartReady(true);
+    if (detectedSymbol && detectedSymbol !== currentSymbol) {
+      setCurrentSymbol(detectedSymbol);
+      if (onSymbolChange) {
+        onSymbolChange(detectedSymbol);
+      }
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -96,7 +111,7 @@ export function UploadArea({
         }
         
         // Convert blob to file
-        const fileName = `${symbol?.replace(':', '_') || 'chart'}_${new Date().getTime()}.png`;
+        const fileName = `${currentSymbol?.replace(':', '_') || 'chart'}_${new Date().getTime()}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
         
         // Create preview
@@ -182,8 +197,9 @@ export function UploadArea({
         ) : chartMode ? (
           <div ref={containerRef} className="w-full h-full relative">
             <TradingViewChart 
-              symbol={symbol || 'BINANCE:BTCUSDT'} 
-              onChartReady={() => setChartReady(true)}
+              symbol={currentSymbol || 'BINANCE:BTCUSDT'} 
+              onChartReady={handleChartReady}
+              onSymbolChange={onSymbolChange}
             />
           </div>
         ) : (
