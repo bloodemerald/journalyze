@@ -36,27 +36,32 @@ export async function analyzeChartWithGemini(
             {
               parts: [
                 {
-                  text: `You are a professional trading analyst. Analyze this ${symbol} trading chart and provide a detailed analysis in JSON format with the following structure:
+                  text: `You are a professional trading analyst. Analyze this ${symbol} price chart and provide a detailed technical analysis in JSON format with the following structure:
                   {
-                    "pattern": "string - Technical pattern identified",
-                    "support": [array of numbers - Key support levels identified],
-                    "resistance": [array of numbers - Key resistance levels identified],
-                    "trend": "string - Current trend description (include the word 'bullish' or 'bearish')",
+                    "pattern": "string - Technical pattern identified (e.g., 'Double Bottom', 'Head and Shoulders', etc.)",
+                    "support": [array of numbers - Specific price levels where support is likely, based on the chart],
+                    "resistance": [array of numbers - Specific price levels where resistance is likely, based on the chart],
+                    "trend": "string - Current price trend description (must include the word 'bullish' or 'bearish')",
                     "riskRewardRatio": number - Estimated risk/reward ratio if entering now,
                     "technicalIndicators": [
                       {
                         "name": "string - Indicator name (e.g., RSI, MACD)",
                         "value": "string - Current value or state",
-                        "interpretation": "string - What this means"
+                        "interpretation": "string - What this means for trading decisions"
                       }
                     ],
-                    "recommendation": "string - Trading recommendation"
+                    "recommendation": "string - Trading recommendation based on price action"
                   }
                   
-                  If you can identify any technical patterns, levels or indicators in the chart, include them. But if the chart is empty or unclear, make up reasonable support/resistance levels and a bullish trend.
-                  Make sure to always include numerical values for support/resistance (don't return empty arrays).
-                  Always include either "bullish" or "bearish" in the trend description.
-                  Just provide the valid JSON without any additional text.`,
+                  IMPORTANT INSTRUCTIONS:
+                  - Focus ONLY on price levels and price action shown in the chart
+                  - Support/resistance should be specific price levels from the chart, not market cap or other metrics
+                  - Make sure support prices are LOWER than resistance prices
+                  - Always include at least 2-3 numerical values for support/resistance levels based on the actual chart
+                  - Always include either "bullish" or "bearish" in the trend description
+                  - If certain price levels are clearly visible in the chart, use those exact values
+                  - Return ONLY valid JSON without any additional text
+                  - If the chart is unclear, make reasonable estimates based on the symbol but note this in the pattern field`,
                 },
                 {
                   inline_data: {
@@ -68,7 +73,7 @@ export async function analyzeChartWithGemini(
             },
           ],
           generationConfig: {
-            temperature: 0.4,
+            temperature: 0.2, // Lower temperature for more factual responses
             topK: 32,
             topP: 0.95,
           },
@@ -106,14 +111,17 @@ export async function analyzeChartWithGemini(
       const analysis = JSON.parse(jsonStr);
       console.log('Parsed analysis:', analysis);
       
-      // If we got empty support/resistance, add fallback values
+      // Extract symbol price range to generate reasonable support/resistance levels
+      const priceInfo = extractPriceInfoFromSymbol(symbol);
+      
+      // If we got empty support/resistance, add fallback values based on price info
       const supportArray = Array.isArray(analysis.support) && analysis.support.length > 0 
         ? analysis.support 
-        : generateFallbackLevels(symbol, 'support');
+        : generateFallbackLevels(symbol, 'support', priceInfo);
       
       const resistanceArray = Array.isArray(analysis.resistance) && analysis.resistance.length > 0 
         ? analysis.resistance 
-        : generateFallbackLevels(symbol, 'resistance');
+        : generateFallbackLevels(symbol, 'resistance', priceInfo);
       
       // Make sure trend contains bullish or bearish
       const trend = analysis.trend || "Bullish trend forming";
@@ -130,10 +138,23 @@ export async function analyzeChartWithGemini(
         typeof level === 'string' && !isNaN(parseFloat(level)) ? parseFloat(level) : level
       );
       
+      // Sort support and resistance levels properly
+      const sortedSupport = processedSupport.sort((a, b) => Number(a) - Number(b));
+      const sortedResistance = processedResistance.sort((a, b) => Number(a) - Number(b));
+      
+      // Ensure support levels are lower than resistance levels
+      const finalSupport = sortedSupport.filter(level => 
+        !sortedResistance.some(r => Number(r) <= Number(level))
+      );
+      
+      const finalResistance = sortedResistance.filter(level => 
+        !sortedSupport.some(s => Number(s) >= Number(level))
+      );
+      
       return {
-        pattern: analysis.pattern || "Double bottom",
-        support: processedSupport,
-        resistance: processedResistance,
+        pattern: analysis.pattern || "Price action analysis",
+        support: finalSupport.length > 0 ? finalSupport : sortedSupport,
+        resistance: finalResistance.length > 0 ? finalResistance : sortedResistance,
         trend: adjustedTrend,
         riskRewardRatio: typeof analysis.riskRewardRatio === 'number' ? analysis.riskRewardRatio : 1.5,
         technicalIndicators: analysis.technicalIndicators || [
@@ -153,15 +174,75 @@ export async function analyzeChartWithGemini(
   }
 }
 
+// Extract price information from symbol
+function extractPriceInfoFromSymbol(symbol: string): { basePrice: number, isLowPrice: boolean } {
+  // Default values
+  let basePrice = 100;
+  let isLowPrice = false;
+  
+  const symbolLower = symbol.toLowerCase();
+  
+  // Cryptocurrency price ranges
+  if (symbolLower.includes('btc') || symbolLower.includes('bitcoin')) {
+    basePrice = 65000;
+  } else if (symbolLower.includes('eth') || symbolLower.includes('ethereum')) {
+    basePrice = 3500;
+  } else if (symbolLower.includes('sol') || symbolLower.includes('solana')) {
+    basePrice = 140;
+  } else if (symbolLower.includes('ada') || symbolLower.includes('cardano')) {
+    basePrice = 0.35;
+    isLowPrice = true;
+  } else if (symbolLower.includes('xrp') || symbolLower.includes('ripple')) {
+    basePrice = 0.50;
+    isLowPrice = true;
+  } else if (symbolLower.includes('doge') || symbolLower.includes('dogecoin')) {
+    basePrice = 0.12;
+    isLowPrice = true;
+  } else if (symbolLower.includes('shib') || symbolLower.includes('shiba')) {
+    basePrice = 0.00001;
+    isLowPrice = true;
+  } else if (symbolLower.includes('ltc') || symbolLower.includes('litecoin')) {
+    basePrice = 80;
+  } else if (symbolLower.includes('dot') || symbolLower.includes('polkadot')) {
+    basePrice = 6;
+  } else if (symbolLower.includes('bnb') || symbolLower.includes('binance')) {
+    basePrice = 600;
+  } else if (symbolLower.includes('link') || symbolLower.includes('chainlink')) {
+    basePrice = 15;
+  } else if (symbolLower.includes('matic') || symbolLower.includes('polygon')) {
+    basePrice = 0.60;
+    isLowPrice = true;
+  } else if (symbolLower.includes('avax') || symbolLower.includes('avalanche')) {
+    basePrice = 30;
+  }
+  // Stock price ranges
+  else if (symbolLower.includes('aapl') || symbolLower.includes('apple')) {
+    basePrice = 180;
+  } else if (symbolLower.includes('msft') || symbolLower.includes('microsoft')) {
+    basePrice = 400;
+  } else if (symbolLower.includes('amzn') || symbolLower.includes('amazon')) {
+    basePrice = 180;
+  } else if (symbolLower.includes('googl') || symbolLower.includes('google')) {
+    basePrice = 170;
+  } else if (symbolLower.includes('meta') || symbolLower.includes('facebook')) {
+    basePrice = 500;
+  } else if (symbolLower.includes('tsla') || symbolLower.includes('tesla')) {
+    basePrice = 190;
+  }
+  
+  return { basePrice, isLowPrice };
+}
+
 // Generate fallback analysis when API fails or returns invalid data
 function generateFallbackAnalysis(symbol: string): TradeEntry['aiAnalysis'] {
-  console.log("Using fallback analysis");
+  console.log("Using fallback analysis for", symbol);
   
-  const supportLevels = generateFallbackLevels(symbol, 'support');
-  const resistanceLevels = generateFallbackLevels(symbol, 'resistance');
+  const priceInfo = extractPriceInfoFromSymbol(symbol);
+  const supportLevels = generateFallbackLevels(symbol, 'support', priceInfo);
+  const resistanceLevels = generateFallbackLevels(symbol, 'resistance', priceInfo);
   
   return {
-    pattern: "Double bottom",
+    pattern: "Double bottom price pattern",
     support: supportLevels,
     resistance: resistanceLevels,
     trend: "Bullish trend forming with potential breakout",
@@ -175,26 +256,25 @@ function generateFallbackAnalysis(symbol: string): TradeEntry['aiAnalysis'] {
 }
 
 // Generate plausible price levels based on symbol
-function generateFallbackLevels(symbol: string, type: 'support' | 'resistance'): number[] {
-  // Default values for popular symbols, or generate random ones
-  let basePrice = 0;
-  
-  if (symbol.includes('BTC')) {
-    basePrice = 65000;
-  } else if (symbol.includes('ETH')) {
-    basePrice = 3500;
-  } else if (symbol.includes('SOL')) {
-    basePrice = 140;
-  } else {
-    basePrice = 100 + Math.random() * 1000;
-  }
+function generateFallbackLevels(
+  symbol: string, 
+  type: 'support' | 'resistance',
+  priceInfo?: { basePrice: number, isLowPrice: boolean }
+): number[] {
+  // Use provided price info or extract it from symbol
+  const { basePrice, isLowPrice } = priceInfo || extractPriceInfoFromSymbol(symbol);
   
   const multiplier = type === 'support' ? 0.9 : 1.1;
-  const spread = type === 'support' ? -0.05 : 0.05;
+  const spread = isLowPrice ? (type === 'support' ? -0.05 : 0.05) : (type === 'support' ? -0.03 : 0.03);
   
-  return [
-    basePrice * (multiplier + spread * 2),
-    basePrice * (multiplier + spread),
-    basePrice * multiplier
-  ].sort(type === 'support' ? (a, b) => a - b : (a, b) => b - a);
+  // For low-priced assets (like ADA, DOGE), use more decimal places
+  const roundingFactor = isLowPrice ? 100 : 1;
+  
+  const levels = [
+    Math.round((basePrice * (multiplier + spread * 2)) * roundingFactor) / roundingFactor,
+    Math.round((basePrice * (multiplier + spread)) * roundingFactor) / roundingFactor,
+    Math.round((basePrice * multiplier) * roundingFactor) / roundingFactor
+  ];
+  
+  return type === 'support' ? levels.sort((a, b) => a - b) : levels.sort((a, b) => b - a);
 }

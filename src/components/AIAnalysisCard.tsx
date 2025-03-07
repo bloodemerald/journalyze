@@ -36,7 +36,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
   }
   
   return (
-    <div className={cn("glass-card p-6 rounded-lg border border-border", className)}>
+    <div className={cn("bg-background p-6 rounded-lg border border-border", className)}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
           <Brain size={18} className="text-primary" />

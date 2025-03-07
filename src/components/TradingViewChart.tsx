@@ -65,14 +65,18 @@ export function TradingViewChart({
     const containerId = `tradingview_chart_${Math.random().toString(36).substring(2, 9)}`;
     containerRef.current.id = containerId;
     
-    // Create new widget
+    // Create new widget with price chart settings
     chartRef.current = new window.TradingView.widget({
       container_id: containerId,
       symbol: symbol,
       interval: interval,
       toolbar_bg: '#001B29',
       theme: 'dark',
-      style: '1',
+      style: '1', // Candlestick chart
+      details: true, // Show details
+      hotlist: true,
+      calendar: true,
+      studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies'],
       locale: 'en',
       enable_publishing: false,
       hide_top_toolbar: false,
@@ -80,12 +84,14 @@ export function TradingViewChart({
       save_image: true,
       height: '100%',
       width: '100%',
-      studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies'],
       show_popup_button: true,
       popup_width: '1000',
       popup_height: '650',
       withdateranges: true,
       hide_side_toolbar: false,
+      allow_symbol_change: true,
+      show_market_status: true,
+      indicators_file_name: "indicators", // Custom indicators
       overrides: {
         "paneProperties.background": "#001B29",
         "paneProperties.vertGridProperties.color": "rgba(0, 75, 102, 0.1)",
@@ -94,6 +100,14 @@ export function TradingViewChart({
         "scalesProperties.textColor": "#AAA",
         "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
         "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
+        // Ensure price display, not market cap
+        "mainSeriesProperties.priceAxisProperties.autoScale": true,
+        "mainSeriesProperties.priceFormat.type": "price",
+        "mainSeriesProperties.visible": true
+      },
+      studies_overrides: {
+        "volume.volume.color.0": "rgba(255, 73, 118, 0.5)",
+        "volume.volume.color.1": "rgba(0, 191, 255, 0.5)"
       },
       // This is the key fix - adding the onChartReady callback from TradingView
       onChartReady: () => {
