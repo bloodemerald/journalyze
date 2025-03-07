@@ -10,7 +10,7 @@ interface TradingViewChartProps {
 
 export function TradingViewChart({ 
   symbol = 'BINANCE:BTCUSDT', 
-  interval = '1D', 
+  interval = '5', // Changed default from '1D' to '5' (5 minute chart)
   onChartReady,
   className 
 }: TradingViewChartProps) {
@@ -65,7 +65,7 @@ export function TradingViewChart({
     const containerId = `tradingview_chart_${Math.random().toString(36).substring(2, 9)}`;
     containerRef.current.id = containerId;
     
-    // Create new widget with price chart settings
+    // Create new widget with improved price chart settings
     chartRef.current = new window.TradingView.widget({
       container_id: containerId,
       symbol: symbol,
@@ -76,7 +76,7 @@ export function TradingViewChart({
       details: true, // Show details
       hotlist: true,
       calendar: true,
-      studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies'],
+      studies: ['RSI@tv-basicstudies', 'MASimple@tv-basicstudies', 'MACD@tv-basicstudies'],
       locale: 'en',
       enable_publishing: false,
       hide_top_toolbar: false,
@@ -91,9 +91,23 @@ export function TradingViewChart({
       hide_side_toolbar: false,
       allow_symbol_change: true,
       show_market_status: true,
-      indicators_file_name: "indicators", // Custom indicators
+      // Force price display, not volume or market cap
+      charts_storage_url: 'https://saveload.tradingview.com',
+      charts_storage_api_version: '1.1',
+      client_id: 'tradingview.com',
+      user_id: 'public_user',
       // Critical setting to ensure price chart is shown, not market cap
       supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
+      // Explicitly set time interval buttons to include 5m
+      time_frames: [
+        { text: "1m", resolution: "1" },
+        { text: "5m", resolution: "5", title: "5 Minutes" },
+        { text: "15m", resolution: "15" },
+        { text: "30m", resolution: "30" },
+        { text: "1h", resolution: "60" },
+        { text: "4h", resolution: "240" },
+        { text: "1d", resolution: "1D" },
+      ],
       overrides: {
         "paneProperties.background": "#001B29",
         "paneProperties.vertGridProperties.color": "rgba(0, 75, 102, 0.1)",
@@ -102,31 +116,45 @@ export function TradingViewChart({
         "scalesProperties.textColor": "#AAA",
         "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
         "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
+        "mainSeriesProperties.candleStyle.upColor": '#00BFFF',
+        "mainSeriesProperties.candleStyle.downColor": '#FF4976',
         // Critical settings to ensure price display, not market cap
         "mainSeriesProperties.priceAxisProperties.autoScale": true,
         "mainSeriesProperties.priceFormat.type": "price",
         "mainSeriesProperties.priceFormat.precision": 2,
         "mainSeriesProperties.visible": true,
-        "scalesProperties.showStudyLastValue": true
+        "scalesProperties.showStudyLastValue": true,
+        // Explicitly set price scale
+        "priceScale": "right",
+        "scalesProperties.lineColor": "#555",
+        "paneProperties.legendProperties.showSeriesTitle": true,
+        "paneProperties.legendProperties.showStudyTitles": true,
+        "paneProperties.legendProperties.showStudyValues": true,
       },
       studies_overrides: {
         "volume.volume.color.0": "rgba(255, 73, 118, 0.5)",
-        "volume.volume.color.1": "rgba(0, 191, 255, 0.5)"
-      },
-      datafeed: {
-        // Adding custom datafeed to force price chart mode
-        onReady: (callback) => {
-          setTimeout(() => callback({
-            supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
-            exchanges: [{ value: "BINANCE", name: "Binance", desc: "Binance" }],
-            symbols_types: [{ name: "crypto", value: "crypto" }]
-          }), 0);
-        }
+        "volume.volume.color.1": "rgba(0, 191, 255, 0.5)",
+        "volume.show.tooltip": true,
+        "MACD.histogram.color.1": "rgba(0, 191, 255, 0.5)",
+        "MACD.histogram.color.0": "rgba(255, 73, 118, 0.5)",
       },
       // This is the key fix - adding the onChartReady callback from TradingView
       onChartReady: () => {
-        console.log('Chart is ready!', symbol);
+        console.log('Chart is ready!', symbol, 'Interval:', interval);
         chartReadyRef.current = true;
+        
+        // Force price display mode
+        if (chartRef.current && chartRef.current.activeChart) {
+          try {
+            const chart = chartRef.current.activeChart();
+            chart.setChartType(1); // Candlestick
+            
+            // Set specific price range if needed
+            // chart.setVisibleRange({ from: Date.now() - 24*60*60*1000, to: Date.now() });
+          } catch (e) {
+            console.error("Error setting chart type:", e);
+          }
+        }
         
         // Notify parent when chart is ready
         if (onChartReady) {

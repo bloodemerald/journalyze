@@ -160,7 +160,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
       
       <div className="mb-2 flex justify-between items-center">
         <h3 className="text-sm font-medium text-muted-foreground">
-          {chartMode ? 'TradingView Chart' : 'Upload Chart Image'}
+          {chartMode ? 'TradingView Chart (5 Min)' : 'Upload Chart Image'}
         </h3>
         <button 
           onClick={toggleMode}
@@ -202,6 +202,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
             <div ref={chartContainerRef} className="w-full h-full relative">
               <TradingViewChart 
                 symbol={symbol || 'BINANCE:BTCUSDT'} 
+                interval="5" // Force 5 minute chart
                 onChartReady={handleChartReady}
               />
             </div>
