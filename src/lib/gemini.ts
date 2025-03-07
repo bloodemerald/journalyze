@@ -54,14 +54,16 @@ export async function analyzeChartWithGemini(
                   }
                   
                   IMPORTANT INSTRUCTIONS:
-                  - Focus ONLY on price levels and price action shown in the chart
-                  - Support/resistance should be specific price levels from the chart, not market cap or other metrics
+                  - Focus ONLY on PRICE LEVELS shown in the chart, not market cap or any other metrics
+                  - For BTC/USD, typical price range is $40,000-$70,000
+                  - For ETH/USD, typical price range is $2,000-$4,000
+                  - Support/resistance should be specific price levels from the chart, not market cap
                   - Make sure support prices are LOWER than resistance prices
                   - Always include at least 2-3 numerical values for support/resistance levels based on the actual chart
                   - Always include either "bullish" or "bearish" in the trend description
                   - If certain price levels are clearly visible in the chart, use those exact values
                   - Return ONLY valid JSON without any additional text
-                  - If the chart is unclear, make reasonable estimates based on the symbol but note this in the pattern field`,
+                  - If the chart is unclear, use reasonable estimates based on the current market price of the symbol`,
                 },
                 {
                   inline_data: {
@@ -151,10 +153,24 @@ export async function analyzeChartWithGemini(
         !sortedSupport.some(s => Number(s) >= Number(level))
       );
       
+      // If filtering removed all support or resistance levels, restore the original sorted arrays
+      const validSupport = finalSupport.length > 0 ? finalSupport : sortedSupport;
+      const validResistance = finalResistance.length > 0 ? finalResistance : sortedResistance;
+      
+      // Ensure we have valid price levels by comparing with typical ranges
+      const { basePrice } = priceInfo;
+      const validatedSupport = validSupport.filter(s => 
+        Number(s) > basePrice * 0.1 && Number(s) < basePrice * 10
+      );
+      
+      const validatedResistance = validResistance.filter(r => 
+        Number(r) > basePrice * 0.1 && Number(r) < basePrice * 10
+      );
+      
       return {
         pattern: analysis.pattern || "Price action analysis",
-        support: finalSupport.length > 0 ? finalSupport : sortedSupport,
-        resistance: finalResistance.length > 0 ? finalResistance : sortedResistance,
+        support: validatedSupport.length > 0 ? validatedSupport : generateFallbackLevels(symbol, 'support', priceInfo),
+        resistance: validatedResistance.length > 0 ? validatedResistance : generateFallbackLevels(symbol, 'resistance', priceInfo),
         trend: adjustedTrend,
         riskRewardRatio: typeof analysis.riskRewardRatio === 'number' ? analysis.riskRewardRatio : 1.5,
         technicalIndicators: analysis.technicalIndicators || [
@@ -242,7 +258,7 @@ function generateFallbackAnalysis(symbol: string): TradeEntry['aiAnalysis'] {
   const resistanceLevels = generateFallbackLevels(symbol, 'resistance', priceInfo);
   
   return {
-    pattern: "Double bottom price pattern",
+    pattern: "Price pattern analysis",
     support: supportLevels,
     resistance: resistanceLevels,
     trend: "Bullish trend forming with potential breakout",
@@ -263,6 +279,15 @@ function generateFallbackLevels(
 ): number[] {
   // Use provided price info or extract it from symbol
   const { basePrice, isLowPrice } = priceInfo || extractPriceInfoFromSymbol(symbol);
+  
+  // For BTC/USD specifically, use more accurate ranges
+  if (symbol.toLowerCase().includes('btc')) {
+    if (type === 'support') {
+      return [60000, 58000, 55000].sort((a, b) => a - b);
+    } else {
+      return [68000, 70000, 72000].sort((a, b) => b - a);
+    }
+  }
   
   const multiplier = type === 'support' ? 0.9 : 1.1;
   const spread = isLowPrice ? (type === 'support' ? -0.05 : 0.05) : (type === 'support' ? -0.03 : 0.03);

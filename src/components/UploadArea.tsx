@@ -30,7 +30,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   // Reset chart ready state when symbol changes
   useEffect(() => {
     setChartReady(false);
-    setIsCaptured(false);
+    // Don't reset isCaptured here to prevent losing the capture state
   }, [symbol]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,11 +111,12 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         const fileName = `${symbol?.replace(':', '_') || 'chart'}_${new Date().getTime()}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
         
-        // Create preview
+        // Create preview but don't hide the chart
         const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
-            setPreview(e.target.result as string);
+            // Don't set preview to not hide the chart
+            // setPreview(e.target.result as string);
             setIsCaptured(true);
             toast.success("Chart captured successfully");
           }
@@ -178,8 +179,8 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         )}
         ref={containerRef}
       >
-        {/* Show the preview overlay only when we have a preview */}
-        {preview && (
+        {/* Only show the preview overlay when we have a preview AND we're in upload mode */}
+        {preview && !chartMode && (
           <div className="absolute inset-0 z-20 overflow-hidden">
             <img 
               src={preview} 
@@ -195,8 +196,8 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
           </div>
         )}
         
-        {/* Always show chart or upload UI, but with lower z-index */}
-        <div className={cn("w-full h-full", isCaptured ? "opacity-0" : "opacity-100")}>
+        {/* Always show chart or upload UI */}
+        <div className="w-full h-full">
           {chartMode ? (
             <div ref={chartContainerRef} className="w-full h-full relative">
               <TradingViewChart 
@@ -220,7 +221,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         
         {/* Status indicator at bottom */}
         {isCaptured && (
-          <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium z-30">
+          <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium z-10">
             Chart captured successfully
           </div>
         )}

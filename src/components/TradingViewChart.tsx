@@ -92,6 +92,8 @@ export function TradingViewChart({
       allow_symbol_change: true,
       show_market_status: true,
       indicators_file_name: "indicators", // Custom indicators
+      // Critical setting to ensure price chart is shown, not market cap
+      supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
       overrides: {
         "paneProperties.background": "#001B29",
         "paneProperties.vertGridProperties.color": "rgba(0, 75, 102, 0.1)",
@@ -100,14 +102,26 @@ export function TradingViewChart({
         "scalesProperties.textColor": "#AAA",
         "mainSeriesProperties.candleStyle.wickUpColor": '#00BFFF',
         "mainSeriesProperties.candleStyle.wickDownColor": '#FF4976',
-        // Ensure price display, not market cap
+        // Critical settings to ensure price display, not market cap
         "mainSeriesProperties.priceAxisProperties.autoScale": true,
         "mainSeriesProperties.priceFormat.type": "price",
-        "mainSeriesProperties.visible": true
+        "mainSeriesProperties.priceFormat.precision": 2,
+        "mainSeriesProperties.visible": true,
+        "scalesProperties.showStudyLastValue": true
       },
       studies_overrides: {
         "volume.volume.color.0": "rgba(255, 73, 118, 0.5)",
         "volume.volume.color.1": "rgba(0, 191, 255, 0.5)"
+      },
+      datafeed: {
+        // Adding custom datafeed to force price chart mode
+        onReady: (callback) => {
+          setTimeout(() => callback({
+            supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
+            exchanges: [{ value: "BINANCE", name: "Binance", desc: "Binance" }],
+            symbols_types: [{ name: "crypto", value: "crypto" }]
+          }), 0);
+        }
       },
       // This is the key fix - adding the onChartReady callback from TradingView
       onChartReady: () => {
@@ -127,6 +141,7 @@ export function TradingViewChart({
       <div 
         ref={containerRef} 
         style={{ height: '100%', width: '100%' }}
+        data-testid="trading-view-chart"
       />
     </div>
   );
