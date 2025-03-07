@@ -27,7 +27,7 @@ const NewEntry = () => {
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
     timestamp: Date.now(),
-    symbol: '',
+    symbol: 'BTC/USD',
     position: null,
     sentiment: null,
     chartImageUrl: '',
@@ -68,7 +68,7 @@ const NewEntry = () => {
           
           // Automatically trigger analysis after capture
           if (form.symbol) {
-            setTimeout(() => analyzeChartImage(), 500);
+            setTimeout(() => analyzeChartImage(), 800);
           }
         }
       };
@@ -124,60 +124,61 @@ const NewEntry = () => {
     
     try {
       const dataUrlToAnalyze = imagePreview || form.chartImageUrl as string;
-      console.log("Analyzing chart", Boolean(dataUrlToAnalyze));
+      console.log("Analyzing chart", Boolean(dataUrlToAnalyze), form.symbol);
       const analysis = await analyzeChartWithGemini(apiKey, dataUrlToAnalyze, form.symbol as string);
       
       if (analysis) {
         console.log("Analysis completed:", analysis);
         
-        // Update the form with the analysis results
-        setForm(prev => {
-          // Determine position and sentiment based on trend
-          const isBullish = analysis.trend?.toLowerCase().includes('bullish');
-          const isBearish = analysis.trend?.toLowerCase().includes('bearish');
-          const position = isBullish ? 'long' : isBearish ? 'short' : prev.position;
-          const sentiment = isBullish ? 'bullish' : isBearish ? 'bearish' : prev.sentiment;
-          
-          // Calculate entry and exit prices based on support/resistance
-          let entryPrice = prev.entryPrice;
-          let exitPrice = prev.exitPrice;
-          let profit = prev.profit;
-          let profitPercentage = prev.profitPercentage;
-          
-          // Make sure we have valid support/resistance arrays with numbers
-          const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
-          const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
-          
-          if (supportLevels.length > 0 && resistanceLevels.length > 0) {
-            if (isBullish) {
-              entryPrice = Math.min(...supportLevels);
-              exitPrice = Math.max(...resistanceLevels);
-            } else if (isBearish) {
-              entryPrice = Math.max(...resistanceLevels);
-              exitPrice = Math.min(...supportLevels);
-            }
-            
-            // Calculate profit
-            if (position === 'long' && entryPrice && exitPrice) {
-              profit = exitPrice - entryPrice;
-              profitPercentage = (profit / entryPrice) * 100;
-            } else if (position === 'short' && entryPrice && exitPrice) {
-              profit = entryPrice - exitPrice;
-              profitPercentage = (profit / entryPrice) * 100;
-            }
+        // Determine position and sentiment based on trend
+        const isBullish = analysis.trend?.toLowerCase().includes('bullish');
+        const isBearish = analysis.trend?.toLowerCase().includes('bearish');
+        const position = isBullish ? 'long' : isBearish ? 'short' : null;
+        const sentiment = isBullish ? 'bullish' : isBearish ? 'bearish' : null;
+        
+        // Calculate entry and exit prices based on support/resistance
+        let entryPrice;
+        let exitPrice;
+        let profit;
+        let profitPercentage;
+        
+        // Make sure we have valid support/resistance arrays with numbers
+        const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
+        const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
+        
+        console.log("Support levels:", supportLevels);
+        console.log("Resistance levels:", resistanceLevels);
+        
+        if (supportLevels.length > 0 && resistanceLevels.length > 0) {
+          if (isBullish) {
+            entryPrice = Math.min(...supportLevels);
+            exitPrice = Math.max(...resistanceLevels);
+          } else if (isBearish) {
+            entryPrice = Math.max(...resistanceLevels);
+            exitPrice = Math.min(...supportLevels);
           }
           
-          return {
-            ...prev,
-            aiAnalysis: analysis,
-            position,
-            sentiment,
-            entryPrice,
-            exitPrice,
-            profit,
-            profitPercentage
-          };
-        });
+          // Calculate profit
+          if (position === 'long' && entryPrice && exitPrice) {
+            profit = exitPrice - entryPrice;
+            profitPercentage = (profit / entryPrice) * 100;
+          } else if (position === 'short' && entryPrice && exitPrice) {
+            profit = entryPrice - exitPrice;
+            profitPercentage = (profit / entryPrice) * 100;
+          }
+        }
+        
+        // Update form with analysis results
+        setForm(prev => ({
+          ...prev,
+          aiAnalysis: analysis,
+          position,
+          sentiment,
+          entryPrice,
+          exitPrice,
+          profit,
+          profitPercentage
+        }));
         
         toast.success("AI analysis completed and form updated");
       } else {
@@ -249,6 +250,11 @@ const NewEntry = () => {
     }
   };
 
+  // Debug display of current form state
+  useEffect(() => {
+    console.log("Current form state:", form);
+  }, [form]);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <Header />
@@ -285,17 +291,27 @@ const NewEntry = () => {
                   name="symbol"
                   value={form.symbol || ''}
                   onChange={handleChange}
-                  placeholder="e.g. BINANCE:BTCUSDT"
+                  placeholder="e.g. BTC/USD"
                   className="input-field w-full"
                   required
                 />
               </div>
+              
+              <button
+                type="button"
+                onClick={analyzeChartImage}
+                className="flex items-center bg-primary/90 hover:bg-primary text-white py-2 px-4 rounded transition-colors"
+                disabled={isAnalyzing}
+              >
+                <Brain size={16} className="mr-2" />
+                {isAnalyzing ? "Analyzing..." : "Analyze Chart"}
+              </button>
             </div>
             
             <div className="w-full">
               <UploadArea 
                 onImageUpload={handleImageUpload}
-                captureChart={() => {}}
+                captureChart={analyzeChartImage}
                 symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
                 className="h-[500px]" // Make the chart taller
                 ref={uploadAreaRef}

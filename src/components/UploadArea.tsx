@@ -22,6 +22,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const [chartMode, setChartMode] = useState(true);
   const [preview, setPreview] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [isCaptured, setIsCaptured] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -29,6 +30,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   // Reset chart ready state when symbol changes
   useEffect(() => {
     setChartReady(false);
+    setIsCaptured(false);
   }, [symbol]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,6 +51,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
     reader.onload = (e) => {
       if (e.target?.result) {
         setPreview(e.target.result as string);
+        setIsCaptured(true);
       }
     };
     reader.readAsDataURL(file);
@@ -60,6 +63,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const clearPreview = (e: React.MouseEvent) => {
     e.stopPropagation();
     setPreview(null);
+    setIsCaptured(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -112,6 +116,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         reader.onload = (e) => {
           if (e.target?.result) {
             setPreview(e.target.result as string);
+            setIsCaptured(true);
             toast.success("Chart captured successfully");
           }
         };
@@ -134,6 +139,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const toggleMode = () => {
     setChartMode(!chartMode);
     setPreview(null);
+    setIsCaptured(false);
   };
 
   const handleChartReady = () => {
@@ -172,40 +178,50 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         )}
         ref={containerRef}
       >
-        {preview ? (
-          <>
+        {/* Show the preview overlay only when we have a preview */}
+        {preview && (
+          <div className="absolute inset-0 z-20 overflow-hidden">
             <img 
               src={preview} 
               alt="Preview" 
-              className="absolute inset-0 w-full h-full object-contain p-4"
+              className="w-full h-full object-contain p-4"
             />
             <button 
               onClick={clearPreview}
-              className="absolute top-2 right-2 bg-secondary rounded-full p-1 shadow-sm hover:bg-secondary/80 transition-colors"
+              className="absolute top-2 right-2 bg-secondary rounded-full p-1 shadow-sm hover:bg-secondary/80 transition-colors z-30"
             >
               <X size={16} className="text-primary" />
             </button>
-            <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium">
-              {chartMode ? 'Chart captured successfully' : 'Click to upload different image'}
-            </div>
-          </>
-        ) : chartMode ? (
-          <div ref={chartContainerRef} className="w-full h-full relative">
-            <TradingViewChart 
-              symbol={symbol || 'BINANCE:BTCUSDT'} 
-              onChartReady={handleChartReady}
-            />
           </div>
-        ) : (
-          <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-              <Camera size={24} className="text-muted-foreground" />
+        )}
+        
+        {/* Always show chart or upload UI, but with lower z-index */}
+        <div className={cn("w-full h-full", isCaptured ? "opacity-0" : "opacity-100")}>
+          {chartMode ? (
+            <div ref={chartContainerRef} className="w-full h-full relative">
+              <TradingViewChart 
+                symbol={symbol || 'BINANCE:BTCUSDT'} 
+                onChartReady={handleChartReady}
+              />
             </div>
-            <p className="text-muted-foreground font-medium mb-1">Drop your trading chart here</p>
-            <p className="text-sm text-muted-foreground/70">or click to browse files</p>
-            <p className="mt-4 text-xs text-muted-foreground/60 max-w-xs text-center">
-              Supported formats: PNG, JPG, JPEG, GIF
-            </p>
+          ) : (
+            <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
+                <Camera size={24} className="text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium mb-1">Drop your trading chart here</p>
+              <p className="text-sm text-muted-foreground/70">or click to browse files</p>
+              <p className="mt-4 text-xs text-muted-foreground/60 max-w-xs text-center">
+                Supported formats: PNG, JPG, JPEG, GIF
+              </p>
+            </div>
+          )}
+        </div>
+        
+        {/* Status indicator at bottom */}
+        {isCaptured && (
+          <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium z-30">
+            Chart captured successfully
           </div>
         )}
       </div>

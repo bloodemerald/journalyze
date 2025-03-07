@@ -1,6 +1,6 @@
 
 import { TradeEntry } from '@/lib/types';
-import { AlertCircle, Brain, TrendingUp } from 'lucide-react';
+import { AlertCircle, Brain, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AIAnalysisCardProps {
@@ -18,6 +18,9 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
      (!analysis.technicalIndicators || analysis.technicalIndicators.length === 0) &&
      !analysis.recommendation);
   
+  const isBullish = analysis?.trend?.toLowerCase().includes('bullish');
+  const isBearish = analysis?.trend?.toLowerCase().includes('bearish');
+  
   if (isEmpty) {
     return (
       <div className={cn("bg-muted p-6 rounded-xl", className)}>
@@ -33,7 +36,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
   }
   
   return (
-    <div className={cn("glass-card p-6", className)}>
+    <div className={cn("glass-card p-6 rounded-lg border border-border", className)}>
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
           <Brain size={18} className="text-primary" />
@@ -53,8 +56,19 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
           <div className="flex items-start gap-3">
             <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Trend</span>
             <div className="flex items-center gap-2">
-              <TrendingUp size={16} className="text-primary" />
-              <span className="text-sm font-medium">{analysis.trend}</span>
+              {isBullish ? (
+                <TrendingUp size={16} className="text-green-500" />
+              ) : isBearish ? (
+                <TrendingDown size={16} className="text-red-500" />
+              ) : (
+                <TrendingUp size={16} className="text-primary" />
+              )}
+              <span className={cn("text-sm font-medium", 
+                isBullish ? "text-green-600" : 
+                isBearish ? "text-red-600" : ""
+              )}>
+                {analysis.trend}
+              </span>
             </div>
           </div>
         )}
