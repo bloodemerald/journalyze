@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, TrendingUp, Timer, ShieldAlert, FileCheck, Camera, Brain } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -38,6 +38,17 @@ export function PreTradeChecklist({
     setup: false
   });
 
+  // Effect to automatically analyze chart after it's captured
+  useEffect(() => {
+    if (chartCaptured && !checkedItems.analyze && symbol) {
+      // Small delay to let UI update
+      const timer = setTimeout(() => {
+        handleAnalyzeChart();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [chartCaptured, symbol, checkedItems.analyze]);
+
   const handleAnalyzeChart = () => {
     if (!symbol) {
       toast.warning("Please enter a symbol before analyzing the chart");
@@ -65,7 +76,7 @@ export function PreTradeChecklist({
   };
 
   // Update analyze state when chartCaptured changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (chartCaptured) {
       setCheckedItems(prev => ({
         ...prev,

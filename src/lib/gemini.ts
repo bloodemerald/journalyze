@@ -17,6 +17,8 @@ export async function analyzeChartWithGemini(
   symbol: string
 ): Promise<TradeEntry['aiAnalysis'] | null> {
   try {
+    console.log(`Analyzing ${symbol} chart with Gemini AI`);
+    
     // Remove the data URL prefix if present
     const base64Image = imageBase64.includes('base64,')
       ? imageBase64.split('base64,')[1]
@@ -39,8 +41,8 @@ export async function analyzeChartWithGemini(
                     "pattern": "string - Technical pattern identified",
                     "support": [array of numbers - Key support levels identified],
                     "resistance": [array of numbers - Key resistance levels identified],
-                    "trend": "string - Current trend description",
-                    "riskRewardRatio": number - Estimated risk/reward ratio if entering now",
+                    "trend": "string - Current trend description (include the word 'bullish' or 'bearish')",
+                    "riskRewardRatio": number - Estimated risk/reward ratio if entering now,
                     "technicalIndicators": [
                       {
                         "name": "string - Indicator name (e.g., RSI, MACD)",
@@ -51,7 +53,7 @@ export async function analyzeChartWithGemini(
                     "recommendation": "string - Trading recommendation"
                   }
                   
-                  Just provide the JSON without any additional text.`,
+                  Just provide the valid JSON without any additional text. Make sure all support and resistance levels are actual numbers, not strings.`,
                 },
                 {
                   inline_data: {
@@ -79,7 +81,13 @@ export async function analyzeChartWithGemini(
 
     const data = await response.json() as GeminiResponse;
     
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error('No response candidates from Gemini');
+      return null;
+    }
+    
     const textResponse = data.candidates[0].content.parts[0].text;
+    console.log('Raw Gemini response:', textResponse);
     
     // Extract JSON from the response
     let jsonStr = textResponse;
@@ -90,18 +98,38 @@ export async function analyzeChartWithGemini(
     } else if (textResponse.includes('```')) {
       jsonStr = textResponse.split('```')[1].split('```')[0].trim();
     }
-    
-    const analysis = JSON.parse(jsonStr);
-    
-    return {
-      pattern: analysis.pattern || undefined,
-      support: analysis.support || [],
-      resistance: analysis.resistance || [],
-      trend: analysis.trend || undefined,
-      riskRewardRatio: analysis.riskRewardRatio || undefined,
-      technicalIndicators: analysis.technicalIndicators || [],
-      recommendation: analysis.recommendation || undefined,
-    };
+
+    try {
+      const analysis = JSON.parse(jsonStr);
+      console.log('Parsed analysis:', analysis);
+      
+      // Ensure support and resistance are arrays of numbers
+      const supportArray = Array.isArray(analysis.support) ? analysis.support : [];
+      const resistanceArray = Array.isArray(analysis.resistance) ? analysis.resistance : [];
+      
+      // Convert any string numbers to actual numbers
+      const processedSupport = supportArray.map(level => 
+        typeof level === 'string' && !isNaN(parseFloat(level)) ? parseFloat(level) : level
+      );
+      
+      const processedResistance = resistanceArray.map(level => 
+        typeof level === 'string' && !isNaN(parseFloat(level)) ? parseFloat(level) : level
+      );
+      
+      return {
+        pattern: analysis.pattern || undefined,
+        support: processedSupport || [],
+        resistance: processedResistance || [],
+        trend: analysis.trend || undefined,
+        riskRewardRatio: typeof analysis.riskRewardRatio === 'number' ? analysis.riskRewardRatio : undefined,
+        technicalIndicators: analysis.technicalIndicators || [],
+        recommendation: analysis.recommendation || undefined,
+      };
+    } catch (parseError) {
+      console.error('Error parsing Gemini response:', parseError);
+      console.error('Invalid JSON:', jsonStr);
+      return null;
+    }
   } catch (error) {
     console.error('Error analyzing chart with Gemini:', error);
     return null;

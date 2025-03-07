@@ -22,7 +22,7 @@ const NewEntry = () => {
   const [checklistComplete, setChecklistComplete] = useState(false);
   const [chartCaptured, setChartCaptured] = useState(false);
   
-  // Fix the ref type - this is important
+  // Fix the ref type
   const uploadAreaRef = useRef<{ handleCaptureChart: () => Promise<void> }>(null);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
@@ -65,6 +65,11 @@ const NewEntry = () => {
           setForm(prev => ({ ...prev, chartImageUrl: dataUrl }));
           
           toast.success("Chart captured successfully");
+          
+          // Automatically trigger analysis after capture
+          if (form.symbol) {
+            setTimeout(() => analyzeChartImage(), 500);
+          }
         }
       };
       reader.readAsDataURL(file);
@@ -123,62 +128,58 @@ const NewEntry = () => {
       const analysis = await analyzeChartWithGemini(apiKey, dataUrlToAnalyze, form.symbol as string);
       
       if (analysis) {
-        // Update the form with the analysis results
-        setForm(prev => ({
-          ...prev,
-          aiAnalysis: analysis,
-          // Auto-populate position and sentiment based on AI analysis trend
-          position: analysis.trend?.toLowerCase().includes('bullish') ? 'long' : 
-                   analysis.trend?.toLowerCase().includes('bearish') ? 'short' : 
-                   prev.position,
-          sentiment: analysis.trend?.toLowerCase().includes('bullish') ? 'bullish' : 
-                    analysis.trend?.toLowerCase().includes('bearish') ? 'bearish' : 
-                    prev.sentiment,
-        }));
+        console.log("Analysis completed:", analysis);
         
-        // Auto-populate entry and exit prices based on support/resistance levels
-        if (analysis.support?.length > 0 && analysis.resistance?.length > 0) {
-          // If trend is bullish, use first support as entry and first resistance as exit
-          // If trend is bearish, use first resistance as entry and first support as exit
+        // Update the form with the analysis results
+        setForm(prev => {
+          // Determine position and sentiment based on trend
           const isBullish = analysis.trend?.toLowerCase().includes('bullish');
-          const entryPrice = isBullish ? 
-            Math.min(...analysis.support.filter(level => typeof level === 'number') as number[]) : 
-            Math.max(...analysis.resistance.filter(level => typeof level === 'number') as number[]);
+          const isBearish = analysis.trend?.toLowerCase().includes('bearish');
+          const position = isBullish ? 'long' : isBearish ? 'short' : prev.position;
+          const sentiment = isBullish ? 'bullish' : isBearish ? 'bearish' : prev.sentiment;
           
-          const exitPrice = isBullish ? 
-            Math.max(...analysis.resistance.filter(level => typeof level === 'number') as number[]) : 
-            Math.min(...analysis.support.filter(level => typeof level === 'number') as number[]);
+          // Calculate entry and exit prices based on support/resistance
+          let entryPrice = prev.entryPrice;
+          let exitPrice = prev.exitPrice;
+          let profit = prev.profit;
+          let profitPercentage = prev.profitPercentage;
           
-          if (!isNaN(entryPrice) && !isNaN(exitPrice)) {
-            setForm(prev => ({
-              ...prev,
-              entryPrice,
-              exitPrice
-            }));
+          // Make sure we have valid support/resistance arrays with numbers
+          const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
+          const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
+          
+          if (supportLevels.length > 0 && resistanceLevels.length > 0) {
+            if (isBullish) {
+              entryPrice = Math.min(...supportLevels);
+              exitPrice = Math.max(...resistanceLevels);
+            } else if (isBearish) {
+              entryPrice = Math.max(...resistanceLevels);
+              exitPrice = Math.min(...supportLevels);
+            }
             
             // Calculate profit
-            const position = isBullish ? 'long' : 'short';
-            let profit = 0;
-            let profitPercentage = 0;
-            
-            if (position === 'long') {
+            if (position === 'long' && entryPrice && exitPrice) {
               profit = exitPrice - entryPrice;
               profitPercentage = (profit / entryPrice) * 100;
-            } else {
+            } else if (position === 'short' && entryPrice && exitPrice) {
               profit = entryPrice - exitPrice;
               profitPercentage = (profit / entryPrice) * 100;
             }
-            
-            setForm(prev => ({
-              ...prev,
-              position,
-              profit,
-              profitPercentage
-            }));
           }
-        }
+          
+          return {
+            ...prev,
+            aiAnalysis: analysis,
+            position,
+            sentiment,
+            entryPrice,
+            exitPrice,
+            profit,
+            profitPercentage
+          };
+        });
         
-        toast.success("AI analysis completed");
+        toast.success("AI analysis completed and form updated");
       } else {
         throw new Error("Failed to analyze chart");
       }
