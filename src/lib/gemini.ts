@@ -56,8 +56,8 @@ export async function analyzeChartWithGemini(
                   IMPORTANT INSTRUCTIONS:
                   - Focus ONLY on PRICE LEVELS shown in the chart, not market cap
                   - This is a 5-minute timeframe chart analysis - your recommendations should be for short-term trading
-                  - For BTC/USD, typical price range is $40,000-$70,000
-                  - For ETH/USD, typical price range is $2,000-$4,000
+                  - For BTC/USD, current price range is $80,000-$85,000 (2024 levels)
+                  - For ETH/USD, current price range is $3,000-$4,000 (2024 levels)
                   - Support/resistance should be specific price levels from the chart
                   - Make sure support prices are LOWER than resistance prices
                   - Always include at least 3 numerical values for support/resistance levels based on the actual chart
@@ -65,6 +65,7 @@ export async function analyzeChartWithGemini(
                   - Always include either "bullish" or "bearish" in the trend description
                   - If certain price levels are clearly visible in the chart, use those exact values
                   - Your recommendation should include specific entry, stop loss, and take profit levels
+                  - Make sure your price levels are accurate to the current price shown on the chart
                   - Return ONLY valid JSON without any additional text
                   - If the chart is unclear, use reasonable estimates based on the current market price of the symbol`,
                 },
@@ -163,11 +164,11 @@ export async function analyzeChartWithGemini(
       // Ensure we have valid price levels by comparing with typical ranges
       const { basePrice } = priceInfo;
       const validatedSupport = validSupport.filter(s => 
-        Number(s) > basePrice * 0.1 && Number(s) < basePrice * 10
+        Number(s) > basePrice * 0.5 && Number(s) < basePrice * 1.5
       );
       
       const validatedResistance = validResistance.filter(r => 
-        Number(r) > basePrice * 0.1 && Number(r) < basePrice * 10
+        Number(r) > basePrice * 0.5 && Number(r) < basePrice * 1.5
       );
       
       // Ensure we have good technical indicators
@@ -252,44 +253,44 @@ function extractPriceInfoFromSymbol(symbol: string): { basePrice: number, isLowP
   
   const symbolLower = symbol.toLowerCase();
   
-  // Cryptocurrency price ranges
+  // Cryptocurrency price ranges (Updated for 2024)
   if (symbolLower.includes('btc') || symbolLower.includes('bitcoin')) {
-    basePrice = 65000;
+    basePrice = 82500; // Updated to 2024 price levels
   } else if (symbolLower.includes('eth') || symbolLower.includes('ethereum')) {
     basePrice = 3500;
   } else if (symbolLower.includes('sol') || symbolLower.includes('solana')) {
     basePrice = 140;
   } else if (symbolLower.includes('ada') || symbolLower.includes('cardano')) {
-    basePrice = 0.35;
+    basePrice = 0.55;
     isLowPrice = true;
   } else if (symbolLower.includes('xrp') || symbolLower.includes('ripple')) {
-    basePrice = 0.50;
+    basePrice = 0.65;
     isLowPrice = true;
   } else if (symbolLower.includes('doge') || symbolLower.includes('dogecoin')) {
-    basePrice = 0.12;
+    basePrice = 0.18;
     isLowPrice = true;
   } else if (symbolLower.includes('shib') || symbolLower.includes('shiba')) {
-    basePrice = 0.00001;
+    basePrice = 0.00002;
     isLowPrice = true;
   } else if (symbolLower.includes('ltc') || symbolLower.includes('litecoin')) {
-    basePrice = 80;
+    basePrice = 95;
   } else if (symbolLower.includes('dot') || symbolLower.includes('polkadot')) {
-    basePrice = 6;
+    basePrice = 8;
   } else if (symbolLower.includes('bnb') || symbolLower.includes('binance')) {
-    basePrice = 600;
+    basePrice = 650;
   } else if (symbolLower.includes('link') || symbolLower.includes('chainlink')) {
     basePrice = 15;
   } else if (symbolLower.includes('matic') || symbolLower.includes('polygon')) {
     basePrice = 0.60;
     isLowPrice = true;
   } else if (symbolLower.includes('avax') || symbolLower.includes('avalanche')) {
-    basePrice = 30;
+    basePrice = 35;
   }
   // Stock price ranges
   else if (symbolLower.includes('aapl') || symbolLower.includes('apple')) {
     basePrice = 180;
   } else if (symbolLower.includes('msft') || symbolLower.includes('microsoft')) {
-    basePrice = 400;
+    basePrice = 410;
   } else if (symbolLower.includes('amzn') || symbolLower.includes('amazon')) {
     basePrice = 180;
   } else if (symbolLower.includes('googl') || symbolLower.includes('google')) {
@@ -350,17 +351,17 @@ function generateFallbackLevels(
   // Use provided price info or extract it from symbol
   const { basePrice, isLowPrice } = priceInfo || extractPriceInfoFromSymbol(symbol);
   
-  // For BTC/USD specifically, use more accurate ranges
+  // For BTC/USD specifically, use more accurate ranges for 2024
   if (symbol.toLowerCase().includes('btc')) {
     if (type === 'support') {
-      return [60000, 58000, 55000].sort((a, b) => a - b);
+      return [81000, 80000, 79000].sort((a, b) => a - b);
     } else {
-      return [68000, 70000, 72000].sort((a, b) => b - a);
+      return [83000, 84000, 85000].sort((a, b) => b - a);
     }
   }
   
-  const multiplier = type === 'support' ? 0.9 : 1.1;
-  const spread = isLowPrice ? (type === 'support' ? -0.05 : 0.05) : (type === 'support' ? -0.03 : 0.03);
+  const multiplier = type === 'support' ? 0.97 : 1.03;
+  const spread = isLowPrice ? (type === 'support' ? -0.02 : 0.02) : (type === 'support' ? -0.01 : 0.01);
   
   // For low-priced assets (like ADA, DOGE), use more decimal places
   const roundingFactor = isLowPrice ? 100 : 1;

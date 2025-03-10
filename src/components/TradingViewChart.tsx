@@ -97,6 +97,8 @@ export function TradingViewChart({
       user_id: 'public_user',
       // Critical setting to ensure price chart is shown, not market cap
       supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
+      // Default to 5 minute timeframe for consistent analysis
+      interval: "5",
       // Explicitly set time interval buttons to include 5m
       time_frames: [
         { text: "1m", resolution: "1" },
@@ -148,6 +150,11 @@ export function TradingViewChart({
             const chart = chartRef.current.activeChart();
             chart.setChartType(1); // Candlestick
             
+            // Force 5 minute timeframe
+            chart.setResolution("5", function() {
+              console.log("Resolution set to 5 minutes");
+            });
+            
             // Ensure we have MACD added
             const macdStudy = chart.createStudy('MACD', false, false, {
               in_fast_length: 12,
@@ -155,8 +162,16 @@ export function TradingViewChart({
               in_signal_length: 9
             });
             
-            // Set specific price range if needed
-            // chart.setVisibleRange({ from: Date.now() - 24*60*60*1000, to: Date.now() });
+            // Make sure price scale is visible
+            chart.executeActionById("drawingsPriceAxisSettings");
+            
+            // Print the current price to console for debugging
+            chart.crossHairMoved(function(price) {
+              if (price && price.price) {
+                console.log("Current price:", price.price);
+              }
+            });
+            
           } catch (e) {
             console.error("Error setting chart type:", e);
           }
