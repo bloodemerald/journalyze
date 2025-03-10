@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { Camera, X, ArrowLeftRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -27,10 +26,8 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
-  // Reset chart ready state when symbol changes
   useEffect(() => {
     setChartReady(false);
-    // Don't reset isCaptured here to prevent losing the capture state
   }, [symbol]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,6 +82,22 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
       console.log("Starting chart capture process");
       toast.info("Capturing chart...");
       
+      // Get the current price if available
+      const currentPrice = (window as any).currentChartPrice;
+      if (currentPrice) {
+        console.log("Current price when capturing chart:", currentPrice);
+      }
+      
+      // Add price to metadata for later analysis
+      const metadata = {
+        symbol: symbol,
+        currentPrice: currentPrice || null,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Store metadata for later use
+      localStorage.setItem('lastChartMetadata', JSON.stringify(metadata));
+      
       // Delay capture slightly to ensure chart is fully rendered
       await new Promise(resolve => setTimeout(resolve, 500));
       
@@ -132,7 +145,6 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
     }
   };
   
-  // Expose the captureChart method through the ref using useImperativeHandle
   useImperativeHandle(ref, () => ({
     handleCaptureChart
   }));

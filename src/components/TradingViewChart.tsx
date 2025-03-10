@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface TradingViewChartProps {
   symbol: string;
@@ -17,6 +17,7 @@ export function TradingViewChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<any>(null);
   const chartReadyRef = useRef<boolean>(false);
+  const [currentPrice, setCurrentPrice] = useState<string | null>(null);
   
   useEffect(() => {
     // Create TradingView widget when component mounts
@@ -165,10 +166,26 @@ export function TradingViewChart({
             // Make sure price scale is visible
             chart.executeActionById("drawingsPriceAxisSettings");
             
-            // Print the current price to console for debugging
+            // Listen for price changes and update the current price
             chart.crossHairMoved(function(price) {
               if (price && price.price) {
-                console.log("Current price:", price.price);
+                const priceValue = parseFloat(price.price);
+                if (!isNaN(priceValue)) {
+                  setCurrentPrice(priceValue.toFixed(2));
+                  console.log("Current price from TradingView:", priceValue.toFixed(2));
+                  
+                  // Add current price to window for debugging and access from parent components
+                  (window as any).currentChartPrice = priceValue;
+                }
+              }
+            });
+            
+            // Get the current symbol info to extract current market price
+            chart.symbolInfo(function(symbolInfo) {
+              if (symbolInfo && symbolInfo.last_price) {
+                console.log("Last price from symbol info:", symbolInfo.last_price);
+                setCurrentPrice(symbolInfo.last_price);
+                (window as any).currentChartPrice = symbolInfo.last_price;
               }
             });
             
@@ -192,6 +209,11 @@ export function TradingViewChart({
         style={{ height: '100%', width: '100%' }}
         data-testid="trading-view-chart"
       />
+      {currentPrice && (
+        <div className="absolute top-2 right-2 bg-primary/80 text-white px-3 py-1 rounded-md text-sm font-medium">
+          Current Price: ${currentPrice}
+        </div>
+      )}
     </div>
   );
 }
@@ -202,5 +224,6 @@ declare global {
     TradingView: {
       widget: any;
     };
+    currentChartPrice?: number;
   }
 }

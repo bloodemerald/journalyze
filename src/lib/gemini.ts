@@ -1,5 +1,6 @@
 
 import { TradeEntry } from './types';
+import { fetchCurrentPrice, getFallbackPrice } from './priceUtils';
 
 interface GeminiResponse {
   candidates: {
@@ -23,6 +24,27 @@ export async function analyzeChartWithGemini(
     const base64Image = imageBase64.includes('base64,')
       ? imageBase64.split('base64,')[1]
       : imageBase64;
+    
+    // Try to get the current price from API first
+    let currentPrice = null;
+    try {
+      currentPrice = await fetchCurrentPrice(symbol);
+      console.log(`Fetched current price for ${symbol}: $${currentPrice}`);
+    } catch (error) {
+      console.error('Error fetching current price:', error);
+    }
+    
+    // If we couldn't get the price from API, use fallback
+    if (!currentPrice) {
+      currentPrice = getFallbackPrice(symbol);
+      console.log(`Using fallback price for ${symbol}: $${currentPrice}`);
+    }
+    
+    // Calculate a reasonable price range based on current price
+    const priceLow = Math.round(currentPrice * 0.95);
+    const priceHigh = Math.round(currentPrice * 1.05);
+    
+    console.log(`Using price range for ${symbol}: $${priceLow}-$${priceHigh}`);
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -56,8 +78,7 @@ export async function analyzeChartWithGemini(
                   IMPORTANT INSTRUCTIONS:
                   - Focus ONLY on PRICE LEVELS shown in the chart, not market cap
                   - This is a 5-minute timeframe chart analysis - your recommendations should be for short-term trading
-                  - For BTC/USD, current price range is $80,000-$85,000 (2024 levels)
-                  - For ETH/USD, current price range is $3,000-$4,000 (2024 levels)
+                  - For ${symbol}, current price range is approximately $${priceLow}-$${priceHigh} (current market price: $${currentPrice})
                   - Support/resistance should be specific price levels from the chart
                   - Make sure support prices are LOWER than resistance prices
                   - Always include at least 3 numerical values for support/resistance levels based on the actual chart
@@ -90,14 +111,14 @@ export async function analyzeChartWithGemini(
     if (!response.ok) {
       const error = await response.text();
       console.error('Gemini API error:', error);
-      return generateFallbackAnalysis(symbol);
+      return generateFallbackAnalysis(symbol, currentPrice);
     }
 
     const data = await response.json() as GeminiResponse;
     
     if (!data.candidates || data.candidates.length === 0) {
       console.error('No response candidates from Gemini');
-      return generateFallbackAnalysis(symbol);
+      return generateFallbackAnalysis(symbol, currentPrice);
     }
     
     const textResponse = data.candidates[0].content.parts[0].text;
@@ -117,17 +138,14 @@ export async function analyzeChartWithGemini(
       const analysis = JSON.parse(jsonStr);
       console.log('Parsed analysis:', analysis);
       
-      // Extract symbol price range to generate reasonable support/resistance levels
-      const priceInfo = extractPriceInfoFromSymbol(symbol);
-      
-      // If we got empty support/resistance, add fallback values based on price info
+      // If we got empty support/resistance, add fallback values based on current price
       const supportArray = Array.isArray(analysis.support) && analysis.support.length > 0 
         ? analysis.support 
-        : generateFallbackLevels(symbol, 'support', priceInfo);
+        : generateFallbackLevels(symbol, 'support', currentPrice);
       
       const resistanceArray = Array.isArray(analysis.resistance) && analysis.resistance.length > 0 
         ? analysis.resistance 
-        : generateFallbackLevels(symbol, 'resistance', priceInfo);
+        : generateFallbackLevels(symbol, 'resistance', currentPrice);
       
       // Make sure trend contains bullish or bearish
       const trend = analysis.trend || "Bullish trend forming";
@@ -161,14 +179,13 @@ export async function analyzeChartWithGemini(
       const validSupport = finalSupport.length > 0 ? finalSupport : sortedSupport;
       const validResistance = finalResistance.length > 0 ? finalResistance : sortedResistance;
       
-      // Ensure we have valid price levels by comparing with typical ranges
-      const { basePrice } = priceInfo;
+      // Ensure we have valid price levels by comparing with current price
       const validatedSupport = validSupport.filter(s => 
-        Number(s) > basePrice * 0.5 && Number(s) < basePrice * 1.5
+        Number(s) > currentPrice * 0.5 && Number(s) < currentPrice * 1.5
       );
       
       const validatedResistance = validResistance.filter(r => 
-        Number(r) > basePrice * 0.5 && Number(r) < basePrice * 1.5
+        Number(r) > currentPrice * 0.5 && Number(r) < currentPrice * 1.5
       );
       
       // Ensure we have good technical indicators
@@ -196,17 +213,17 @@ export async function analyzeChartWithGemini(
       
       return {
         pattern: analysis.pattern || "5-minute price action pattern",
-        support: validatedSupport.length > 0 ? validatedSupport : generateFallbackLevels(symbol, 'support', priceInfo),
-        resistance: validatedResistance.length > 0 ? validatedResistance : generateFallbackLevels(symbol, 'resistance', priceInfo),
+        support: validatedSupport.length > 0 ? validatedSupport : generateFallbackLevels(symbol, 'support', currentPrice),
+        resistance: validatedResistance.length > 0 ? validatedResistance : generateFallbackLevels(symbol, 'resistance', currentPrice),
         trend: adjustedTrend,
         riskRewardRatio: typeof analysis.riskRewardRatio === 'number' ? analysis.riskRewardRatio : 1.5,
         technicalIndicators: technicalIndicators,
-        recommendation: analysis.recommendation || generateRecommendation(symbol, adjustedTrend, validatedSupport, validatedResistance),
+        recommendation: analysis.recommendation || generateRecommendation(symbol, adjustedTrend, validatedSupport, validatedResistance, currentPrice),
       };
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError);
       console.error('Invalid JSON:', jsonStr);
-      return generateFallbackAnalysis(symbol);
+      return generateFallbackAnalysis(symbol, currentPrice);
     }
   } catch (error) {
     console.error('Error analyzing chart with Gemini:', error);
@@ -224,7 +241,8 @@ function generateRecommendation(
   symbol: string, 
   trend: string, 
   support: number[],
-  resistance: number[]
+  resistance: number[],
+  currentPrice?: number
 ): string {
   const bullish = isBullish(trend);
   
@@ -238,79 +256,26 @@ function generateRecommendation(
   const keySupport = Math.max(...support);
   const keyResistance = Math.min(...resistance);
   
+  // Add current price context if available
+  const priceContext = currentPrice ? ` Current price is approximately $${currentPrice.toFixed(2)}.` : '';
+  
   if (bullish) {
-    return `Analyzing the 5-minute chart, I see a bullish pattern forming. The price has found support at ${keySupport.toFixed(2)} and shows potential to test resistance at ${keyResistance.toFixed(2)}. Consider a long entry near ${keySupport.toFixed(2)} with a stop-loss at ${(keySupport * 0.97).toFixed(2)} and take profit at ${keyResistance.toFixed(2)}, giving a risk-reward ratio of approximately ${((keyResistance - keySupport) / (keySupport - (keySupport * 0.97))).toFixed(1)}.`;
+    return `Analyzing the 5-minute chart, I see a bullish pattern forming.${priceContext} The price has found support at ${keySupport.toFixed(2)} and shows potential to test resistance at ${keyResistance.toFixed(2)}. Consider a long entry near ${keySupport.toFixed(2)} with a stop-loss at ${(keySupport * 0.97).toFixed(2)} and take profit at ${keyResistance.toFixed(2)}, giving a risk-reward ratio of approximately ${((keyResistance - keySupport) / (keySupport - (keySupport * 0.97))).toFixed(1)}.`;
   } else {
-    return `Analyzing the 5-minute chart, I see a bearish pattern forming. The price is facing resistance at ${keyResistance.toFixed(2)} and may drop to support at ${keySupport.toFixed(2)}. Consider a short entry near ${keyResistance.toFixed(2)} with a stop-loss at ${(keyResistance * 1.03).toFixed(2)} and take profit at ${keySupport.toFixed(2)}, giving a risk-reward ratio of approximately ${((keyResistance - keySupport) / ((keyResistance * 1.03) - keyResistance)).toFixed(1)}.`;
+    return `Analyzing the 5-minute chart, I see a bearish pattern forming.${priceContext} The price is facing resistance at ${keyResistance.toFixed(2)} and may drop to support at ${keySupport.toFixed(2)}. Consider a short entry near ${keyResistance.toFixed(2)} with a stop-loss at ${(keyResistance * 1.03).toFixed(2)} and take profit at ${keySupport.toFixed(2)}, giving a risk-reward ratio of approximately ${((keyResistance - keySupport) / ((keyResistance * 1.03) - keyResistance)).toFixed(1)}.`;
   }
-}
-
-// Extract price information from symbol
-function extractPriceInfoFromSymbol(symbol: string): { basePrice: number, isLowPrice: boolean } {
-  // Default values
-  let basePrice = 100;
-  let isLowPrice = false;
-  
-  const symbolLower = symbol.toLowerCase();
-  
-  // Cryptocurrency price ranges (Updated for 2024)
-  if (symbolLower.includes('btc') || symbolLower.includes('bitcoin')) {
-    basePrice = 82500; // Updated to 2024 price levels
-  } else if (symbolLower.includes('eth') || symbolLower.includes('ethereum')) {
-    basePrice = 3500;
-  } else if (symbolLower.includes('sol') || symbolLower.includes('solana')) {
-    basePrice = 140;
-  } else if (symbolLower.includes('ada') || symbolLower.includes('cardano')) {
-    basePrice = 0.55;
-    isLowPrice = true;
-  } else if (symbolLower.includes('xrp') || symbolLower.includes('ripple')) {
-    basePrice = 0.65;
-    isLowPrice = true;
-  } else if (symbolLower.includes('doge') || symbolLower.includes('dogecoin')) {
-    basePrice = 0.18;
-    isLowPrice = true;
-  } else if (symbolLower.includes('shib') || symbolLower.includes('shiba')) {
-    basePrice = 0.00002;
-    isLowPrice = true;
-  } else if (symbolLower.includes('ltc') || symbolLower.includes('litecoin')) {
-    basePrice = 95;
-  } else if (symbolLower.includes('dot') || symbolLower.includes('polkadot')) {
-    basePrice = 8;
-  } else if (symbolLower.includes('bnb') || symbolLower.includes('binance')) {
-    basePrice = 650;
-  } else if (symbolLower.includes('link') || symbolLower.includes('chainlink')) {
-    basePrice = 15;
-  } else if (symbolLower.includes('matic') || symbolLower.includes('polygon')) {
-    basePrice = 0.60;
-    isLowPrice = true;
-  } else if (symbolLower.includes('avax') || symbolLower.includes('avalanche')) {
-    basePrice = 35;
-  }
-  // Stock price ranges
-  else if (symbolLower.includes('aapl') || symbolLower.includes('apple')) {
-    basePrice = 180;
-  } else if (symbolLower.includes('msft') || symbolLower.includes('microsoft')) {
-    basePrice = 410;
-  } else if (symbolLower.includes('amzn') || symbolLower.includes('amazon')) {
-    basePrice = 180;
-  } else if (symbolLower.includes('googl') || symbolLower.includes('google')) {
-    basePrice = 170;
-  } else if (symbolLower.includes('meta') || symbolLower.includes('facebook')) {
-    basePrice = 500;
-  } else if (symbolLower.includes('tsla') || symbolLower.includes('tesla')) {
-    basePrice = 190;
-  }
-  
-  return { basePrice, isLowPrice };
 }
 
 // Generate fallback analysis when API fails or returns invalid data
-function generateFallbackAnalysis(symbol: string): TradeEntry['aiAnalysis'] {
+function generateFallbackAnalysis(symbol: string, currentPrice?: number): TradeEntry['aiAnalysis'] {
   console.log("Using fallback analysis for", symbol);
   
-  const priceInfo = extractPriceInfoFromSymbol(symbol);
-  const supportLevels = generateFallbackLevels(symbol, 'support', priceInfo);
-  const resistanceLevels = generateFallbackLevels(symbol, 'resistance', priceInfo);
+  // Use provided price or get fallback price
+  const price = currentPrice || getFallbackPrice(symbol);
+  console.log(`Using price for fallback analysis: $${price}`);
+  
+  const supportLevels = generateFallbackLevels(symbol, 'support', price);
+  const resistanceLevels = generateFallbackLevels(symbol, 'resistance', price);
   
   // Generate bullish or bearish fallback randomly for variety
   const isBullishFallback = Math.random() > 0.5;
@@ -338,38 +303,29 @@ function generateFallbackAnalysis(symbol: string): TradeEntry['aiAnalysis'] {
         interpretation: isBullishFallback ? "Confirming uptrend" : "Confirming downtrend" 
       }
     ],
-    recommendation: generateRecommendation(symbol, isBullishFallback ? "bullish" : "bearish", supportLevels, resistanceLevels)
+    recommendation: generateRecommendation(symbol, isBullishFallback ? "bullish" : "bearish", supportLevels, resistanceLevels, price)
   };
 }
 
-// Generate plausible price levels based on symbol
+// Generate plausible price levels based on symbol and current price
 function generateFallbackLevels(
   symbol: string, 
   type: 'support' | 'resistance',
-  priceInfo?: { basePrice: number, isLowPrice: boolean }
+  currentPrice: number
 ): number[] {
-  // Use provided price info or extract it from symbol
-  const { basePrice, isLowPrice } = priceInfo || extractPriceInfoFromSymbol(symbol);
-  
-  // For BTC/USD specifically, use more accurate ranges for 2024
-  if (symbol.toLowerCase().includes('btc')) {
-    if (type === 'support') {
-      return [81000, 80000, 79000].sort((a, b) => a - b);
-    } else {
-      return [83000, 84000, 85000].sort((a, b) => b - a);
-    }
-  }
-  
   const multiplier = type === 'support' ? 0.97 : 1.03;
-  const spread = isLowPrice ? (type === 'support' ? -0.02 : 0.02) : (type === 'support' ? -0.01 : 0.01);
+  const spread = type === 'support' ? -0.01 : 0.01;
+  
+  // Determine if it's a low-priced asset
+  const isLowPrice = currentPrice < 1;
   
   // For low-priced assets (like ADA, DOGE), use more decimal places
   const roundingFactor = isLowPrice ? 100 : 1;
   
   const levels = [
-    Math.round((basePrice * (multiplier + spread * 2)) * roundingFactor) / roundingFactor,
-    Math.round((basePrice * (multiplier + spread)) * roundingFactor) / roundingFactor,
-    Math.round((basePrice * multiplier) * roundingFactor) / roundingFactor
+    Math.round((currentPrice * (multiplier + spread * 2)) * roundingFactor) / roundingFactor,
+    Math.round((currentPrice * (multiplier + spread)) * roundingFactor) / roundingFactor,
+    Math.round((currentPrice * multiplier) * roundingFactor) / roundingFactor
   ];
   
   return type === 'support' ? levels.sort((a, b) => a - b) : levels.sort((a, b) => b - a);
