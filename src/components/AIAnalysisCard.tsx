@@ -39,24 +39,55 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
   const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
   const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
   
+  // Calculate entry, stop loss, and take profit based on trading principles
   let entryPrice: number | undefined;
   let stopLoss: number | undefined;
   let takeProfit: number | undefined;
   
-  // Calculate based on trend
+  // For trading calculations
+  const DEFAULT_STOP_LOSS_PERCENT = 3.5; // 3.5% for typical crypto stop loss
+  const DEFAULT_RISK_REWARD_RATIO = analysis.riskRewardRatio || 1.5;
+  
+  // Calculate based on trend - using proper trading principles
   if (isBullish && supportLevels.length > 0 && resistanceLevels.length > 0) {
-    // For bullish: entry near support, stop below support, target at resistance
-    entryPrice = Math.max(...supportLevels);
-    stopLoss = entryPrice * 0.97; // 3% below entry
-    takeProfit = Math.min(...resistanceLevels);
+    // For bullish: Entry slightly above support, stop below support, target at resistance
+    const nearestSupport = Math.max(...supportLevels);
+    const nearestResistance = Math.min(...resistanceLevels);
+    
+    // Entry should be above support with a small buffer (0.5-1%)
+    entryPrice = parseFloat((nearestSupport * 1.005).toFixed(2));
+    
+    // Stop loss placed below support with enough room to avoid getting stopped out
+    stopLoss = parseFloat((nearestSupport * (1 - DEFAULT_STOP_LOSS_PERCENT/100)).toFixed(2));
+    
+    // Take profit at resistance or based on risk-reward ratio, whichever is closer
+    const riskAmount = entryPrice - stopLoss;
+    const rewardBasedOnRatio = entryPrice + (riskAmount * DEFAULT_RISK_REWARD_RATIO);
+    
+    // Use the smaller of potential targets to be conservative
+    takeProfit = Math.min(nearestResistance, rewardBasedOnRatio);
+    takeProfit = parseFloat(takeProfit.toFixed(2));
   } else if (isBearish && supportLevels.length > 0 && resistanceLevels.length > 0) {
-    // For bearish: entry near resistance, stop above resistance, target at support
-    entryPrice = Math.min(...resistanceLevels);
-    stopLoss = entryPrice * 1.03; // 3% above entry
-    takeProfit = Math.max(...supportLevels);
+    // For bearish: Entry below resistance, stop above resistance, target at support
+    const nearestSupport = Math.max(...supportLevels);
+    const nearestResistance = Math.min(...resistanceLevels);
+    
+    // Entry should be below resistance with a small buffer
+    entryPrice = parseFloat((nearestResistance * 0.995).toFixed(2));
+    
+    // Stop loss placed above resistance with enough room
+    stopLoss = parseFloat((nearestResistance * (1 + DEFAULT_STOP_LOSS_PERCENT/100)).toFixed(2));
+    
+    // Take profit at support or based on risk-reward ratio, whichever is closer
+    const riskAmount = stopLoss - entryPrice;
+    const rewardBasedOnRatio = entryPrice - (riskAmount * DEFAULT_RISK_REWARD_RATIO);
+    
+    // Use the larger of potential targets to be conservative (since we're going down)
+    takeProfit = Math.max(nearestSupport, rewardBasedOnRatio);
+    takeProfit = parseFloat(takeProfit.toFixed(2));
   }
   
-  // Calculate risk/reward ratio
+  // Calculate risk/reward ratio based on our values
   let riskRewardRatio = analysis.riskRewardRatio;
   if (!riskRewardRatio && entryPrice && stopLoss && takeProfit) {
     const risk = Math.abs(entryPrice - stopLoss);
@@ -162,7 +193,9 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
             {entryPrice && (
               <div className="flex justify-between items-center">
                 <span className="text-sm">Entry Price</span>
-                <span className="font-medium text-primary">${entryPrice.toFixed(2)}</span>
+                <span className={cn("font-medium", isBullish ? "text-green-600" : "text-red-600")}>
+                  ${entryPrice.toFixed(2)}
+                </span>
               </div>
             )}
             
