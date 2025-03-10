@@ -97,8 +97,8 @@ export function TradingViewChart({
       user_id: 'public_user',
       // Critical setting to ensure price chart is shown, not market cap
       supported_resolutions: ["1", "5", "15", "30", "60", "240", "1D", "1W", "1M"],
-      // Default to 5 minute timeframe for consistent analysis
-      interval: "5",
+      // Remove duplicate interval property - this was causing the error
+      // interval: "5", <- Removed this duplicate property
       // Explicitly set time interval buttons to include 5m
       time_frames: [
         { text: "1m", resolution: "1" },
