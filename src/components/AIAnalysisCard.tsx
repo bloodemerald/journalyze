@@ -1,6 +1,6 @@
 
 import { TradeEntry } from '@/lib/types';
-import { AlertCircle, Brain, TrendingUp, TrendingDown } from 'lucide-react';
+import { AlertCircle, Brain, TrendingUp, TrendingDown, Check, X, BarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface AIAnalysisCardProps {
@@ -35,108 +35,190 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
     );
   }
   
+  // Find support/resistance levels to calculate potential entry/exit
+  const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
+  const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
+  
+  let entryPrice: number | undefined;
+  let stopLoss: number | undefined;
+  let takeProfit: number | undefined;
+  
+  // Calculate based on trend
+  if (isBullish && supportLevels.length > 0 && resistanceLevels.length > 0) {
+    // For bullish: entry near support, stop below support, target at resistance
+    entryPrice = Math.max(...supportLevels);
+    stopLoss = entryPrice * 0.97; // 3% below entry
+    takeProfit = Math.min(...resistanceLevels);
+  } else if (isBearish && supportLevels.length > 0 && resistanceLevels.length > 0) {
+    // For bearish: entry near resistance, stop above resistance, target at support
+    entryPrice = Math.min(...resistanceLevels);
+    stopLoss = entryPrice * 1.03; // 3% above entry
+    takeProfit = Math.max(...supportLevels);
+  }
+  
+  // Calculate risk/reward ratio
+  let riskRewardRatio = analysis.riskRewardRatio;
+  if (!riskRewardRatio && entryPrice && stopLoss && takeProfit) {
+    const risk = Math.abs(entryPrice - stopLoss);
+    const reward = Math.abs(entryPrice - takeProfit);
+    if (risk > 0) {
+      riskRewardRatio = parseFloat((reward / risk).toFixed(1));
+    }
+  }
+  
   return (
     <div className={cn("bg-background p-6 rounded-lg border border-border", className)}>
-      <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-          <Brain size={18} className="text-primary" />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+            <Brain size={18} className="text-primary" />
+          </div>
+          <h3 className="text-lg font-medium">AI Analysis</h3>
         </div>
-        <h3 className="text-lg font-medium">AI Analysis</h3>
+        
+        {/* Trade Decision */}
+        <div className={cn(
+          "px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1",
+          isBullish ? "bg-green-100 text-green-700" : isBearish ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+        )}>
+          {isBullish ? "Trade Decision: Buy" : isBearish ? "Trade Decision: Sell" : "Analyzing..."}
+        </div>
       </div>
       
-      <div className="space-y-4">
-        {analysis.pattern && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Pattern</span>
-            <span className="text-sm font-medium">{analysis.pattern}</span>
-          </div>
-        )}
-        
-        {analysis.trend && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Trend</span>
-            <div className="flex items-center gap-2">
-              {isBullish ? (
-                <TrendingUp size={16} className="text-green-500" />
-              ) : isBearish ? (
-                <TrendingDown size={16} className="text-red-500" />
-              ) : (
-                <TrendingUp size={16} className="text-primary" />
-              )}
-              <span className={cn("text-sm font-medium", 
-                isBullish ? "text-green-600" : 
-                isBearish ? "text-red-600" : ""
-              )}>
-                {analysis.trend}
-              </span>
+      {/* Analysis Summary */}
+      {analysis.recommendation && (
+        <div className="mb-6 p-3 rounded-lg bg-secondary/30 border border-border text-sm">
+          <p className="italic">{analysis.recommendation}</p>
+        </div>
+      )}
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+        {/* Left Column - Pattern & Levels */}
+        <div className="space-y-4">
+          {analysis.pattern && (
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground">Pattern</h4>
+              <p className="font-medium">{analysis.pattern}</p>
             </div>
-          </div>
-        )}
-        
-        {analysis.support && analysis.support.length > 0 && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Support</span>
-            <div className="flex flex-wrap gap-2">
-              {analysis.support.map((level, index) => (
-                <span 
-                  key={index}
-                  className="text-sm px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-medium"
-                >
-                  {typeof level === 'number' ? level.toFixed(2) : level}
+          )}
+          
+          {analysis.trend && (
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground">Trend</h4>
+              <div className="flex items-center gap-2">
+                {isBullish ? (
+                  <TrendingUp size={16} className="text-green-500" />
+                ) : isBearish ? (
+                  <TrendingDown size={16} className="text-red-500" />
+                ) : null}
+                <span className={cn("font-medium", 
+                  isBullish ? "text-green-600" : 
+                  isBearish ? "text-red-600" : ""
+                )}>
+                  {analysis.trend}
                 </span>
-              ))}
+              </div>
             </div>
-          </div>
-        )}
-        
-        {analysis.resistance && analysis.resistance.length > 0 && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Resistance</span>
-            <div className="flex flex-wrap gap-2">
-              {analysis.resistance.map((level, index) => (
-                <span 
-                  key={index}
-                  className="text-sm px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-medium"
-                >
-                  {typeof level === 'number' ? level.toFixed(2) : level}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        {analysis.riskRewardRatio && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Risk/Reward</span>
-            <span className="text-sm font-medium">1:{analysis.riskRewardRatio.toFixed(1)}</span>
-          </div>
-        )}
-        
-        {analysis.technicalIndicators && analysis.technicalIndicators.length > 0 && (
-          <div className="flex items-start gap-3">
-            <span className="flex-shrink-0 w-24 text-sm text-muted-foreground">Indicators</span>
-            <div className="space-y-2">
-              {analysis.technicalIndicators.map((indicator, index) => (
-                <div key={index} className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {indicator.name}: {indicator.value}
-                    </span>
-                  </div>
-                  <span className="text-xs text-muted-foreground">
-                    {indicator.interpretation}
+          )}
+          
+          {supportLevels.length > 0 && (
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground">Support Levels</h4>
+              <div className="flex flex-wrap gap-2">
+                {supportLevels.map((level, index) => (
+                  <span 
+                    key={index}
+                    className="px-2 py-0.5 rounded-md bg-green-50 text-green-700 font-medium"
+                  >
+                    {level.toFixed(2)}
                   </span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+          
+          {resistanceLevels.length > 0 && (
+            <div className="space-y-1">
+              <h4 className="text-sm font-semibold text-muted-foreground">Resistance Levels</h4>
+              <div className="flex flex-wrap gap-2">
+                {resistanceLevels.map((level, index) => (
+                  <span 
+                    key={index}
+                    className="px-2 py-0.5 rounded-md bg-red-50 text-red-700 font-medium"
+                  >
+                    {level.toFixed(2)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
-        {analysis.recommendation && (
-          <div className="mt-4 p-3 rounded-lg bg-secondary/50 border border-border">
-            <p className="text-sm">{analysis.recommendation}</p>
+        {/* Right Column - Trade Setup */}
+        <div className="space-y-4">
+          <h4 className="font-semibold mb-3">Trade Setup</h4>
+          
+          <div className="space-y-3">
+            {entryPrice && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Entry Price</span>
+                <span className="font-medium text-primary">${entryPrice.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {stopLoss && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Stop Loss</span>
+                <span className="font-medium text-red-600">${stopLoss.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {takeProfit && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Take Profit</span>
+                <span className="font-medium text-green-600">${takeProfit.toFixed(2)}</span>
+              </div>
+            )}
+            
+            {riskRewardRatio && (
+              <div className="flex justify-between items-center">
+                <span className="text-sm">Risk/Reward Ratio</span>
+                <span className="font-medium">1:{riskRewardRatio}</span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Technical Indicators */}
+          {analysis.technicalIndicators && analysis.technicalIndicators.length > 0 && (
+            <div className="mt-6">
+              <h4 className="font-semibold mb-3">Technical Indicators</h4>
+              <div className="space-y-3">
+                {analysis.technicalIndicators.map((indicator, index) => (
+                  <div key={index} className="flex justify-between items-center">
+                    <span className="text-sm">{indicator.name}:</span>
+                    <div className="flex items-center gap-2">
+                      <span className={cn(
+                        "font-medium",
+                        indicator.interpretation.toLowerCase().includes('bullish') ? "text-green-600" :
+                        indicator.interpretation.toLowerCase().includes('bearish') ? "text-red-600" : ""
+                      )}>
+                        {indicator.value}
+                      </span>
+                      
+                      {indicator.interpretation.toLowerCase().includes('bullish') && (
+                        <TrendingUp size={14} className="text-green-500" />
+                      )}
+                      
+                      {indicator.interpretation.toLowerCase().includes('bearish') && (
+                        <TrendingDown size={14} className="text-red-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

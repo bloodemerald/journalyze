@@ -10,7 +10,7 @@ interface TradingViewChartProps {
 
 export function TradingViewChart({ 
   symbol = 'BINANCE:BTCUSDT', 
-  interval = '5', // Changed default from '1D' to '5' (5 minute chart)
+  interval = '5', // 5 minute chart by default
   onChartReady,
   className 
 }: TradingViewChartProps) {
@@ -91,7 +91,6 @@ export function TradingViewChart({
       hide_side_toolbar: false,
       allow_symbol_change: true,
       show_market_status: true,
-      // Force price display, not volume or market cap
       charts_storage_url: 'https://saveload.tradingview.com',
       charts_storage_api_version: '1.1',
       client_id: 'tradingview.com',
@@ -143,11 +142,18 @@ export function TradingViewChart({
         console.log('Chart is ready!', symbol, 'Interval:', interval);
         chartReadyRef.current = true;
         
-        // Force price display mode
+        // Force price display mode and add MACD
         if (chartRef.current && chartRef.current.activeChart) {
           try {
             const chart = chartRef.current.activeChart();
             chart.setChartType(1); // Candlestick
+            
+            // Ensure we have MACD added
+            const macdStudy = chart.createStudy('MACD', false, false, {
+              in_fast_length: 12,
+              in_slow_length: 26,
+              in_signal_length: 9
+            });
             
             // Set specific price range if needed
             // chart.setVisibleRange({ from: Date.now() - 24*60*60*1000, to: Date.now() });
