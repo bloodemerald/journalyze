@@ -153,25 +153,35 @@ export function PreTradeChecklist({
   return (
     <div className={cn("space-y-4", className)}>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-lg font-semibold text-tron-cyan tron-text-glow">Pre-Trade Checklist</h3>
+        <h3 className="text-xl font-semibold text-tron-cyan tron-text-glow flex items-center">
+          <FileCheck size={18} className="mr-2" />
+          Pre-Trade Checklist
+        </h3>
         <div 
           className={cn(
-            "text-xs font-medium py-1 px-3 rounded-sm", 
+            "text-xs font-medium py-1 px-3 rounded-sm flex items-center", 
             allChecked 
               ? "bg-tron-blue/20 text-tron-cyan border border-tron-blue/50 shadow-tron-sm"
               : "bg-tron-darkBlue text-tron-blue/80 border border-tron-blue/30"
           )}
         >
-          {allChecked ? "All Confirmed" : "Confirmation Required"}
+          {allChecked ? (
+            <>
+              <Check size={12} className="mr-1" />
+              All Confirmed
+            </>
+          ) : (
+            "Confirmation Required"
+          )}
         </div>
       </div>
       
-      <div className="space-y-2">
+      <div className="space-y-3">
         {checklistItems.map((item) => (
           <div 
             key={item.id}
             className={cn(
-              "flex items-start gap-3 p-3 rounded-sm border transition-all duration-300 cursor-pointer",
+              "flex items-start gap-3 p-3 rounded-md border transition-all duration-300 cursor-pointer",
               checkedItems[item.id] 
                 ? "bg-tron-blue/10 border-tron-blue/40 shadow-tron-sm" 
                 : item.id === 'analyze' && item.isLoading
@@ -199,7 +209,10 @@ export function PreTradeChecklist({
             <div className="space-y-1 flex-1">
               <div className="flex items-center gap-2">
                 <span className={cn(
-                  checkedItems[item.id] ? "text-tron-cyan" : "text-tron-blue/70"
+                  "p-1 rounded-sm",
+                  checkedItems[item.id] 
+                    ? "bg-tron-blue/20 text-tron-cyan" 
+                    : "bg-tron-dark text-tron-blue/70"
                 )}>{item.icon}</span>
                 <h4 className={cn(
                   "text-sm font-medium",
@@ -227,6 +240,18 @@ export function PreTradeChecklist({
           </div>
         ))}
       </div>
+      
+      {allChecked && (
+        <div className="mt-4 p-3 bg-tron-blue/10 border border-tron-blue/30 rounded-md text-tron-cyan text-sm">
+          <p className="font-medium flex items-center">
+            <Check size={16} className="mr-2" />
+            Ready to submit your trade entry
+          </p>
+          <p className="text-xs mt-1 text-tron-blue/80">
+            You've completed all pre-trade checks. Click the Save Entry button at the top to record this trade.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

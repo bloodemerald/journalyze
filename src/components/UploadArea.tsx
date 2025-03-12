@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
-import { Camera, X, ArrowLeftRight } from 'lucide-react';
+import { Camera, X, ArrowLeftRight, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TradingViewChart } from './TradingViewChart';
 import { toast } from 'sonner';
@@ -22,12 +23,14 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const [preview, setPreview] = useState<string | null>(null);
   const [chartReady, setChartReady] = useState(false);
   const [isCaptured, setIsCaptured] = useState(false);
+  const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setChartReady(false);
+    setLoading(true);
   }, [symbol]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,6 +84,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
     try {
       console.log("Starting chart capture process");
       toast.info("Capturing chart...");
+      setLoading(true);
       
       // Get the current price if available
       const currentPrice = (window as any).currentChartPrice;
@@ -115,6 +119,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
       canvas.toBlob((blob) => {
         if (!blob) {
           toast.error("Failed to capture chart");
+          setLoading(false);
           return;
         }
         
@@ -132,6 +137,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
             // setPreview(e.target.result as string);
             setIsCaptured(true);
             toast.success("Chart captured successfully");
+            setLoading(false);
           }
         };
         reader.readAsDataURL(file);
@@ -142,6 +148,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
     } catch (error) {
       console.error('Error capturing chart:', error);
       toast.error("Failed to capture chart");
+      setLoading(false);
     }
   };
   
@@ -158,6 +165,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
   const handleChartReady = () => {
     console.log("Chart is ready in UploadArea component");
     setChartReady(true);
+    setLoading(false);
   };
 
   return (
@@ -171,26 +179,53 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
       />
       
       <div className="mb-2 flex justify-between items-center">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          {chartMode ? 'TradingView Chart (5 Min)' : 'Upload Chart Image'}
-        </h3>
+        <div className="flex items-center">
+          <h3 className="text-sm font-medium text-tron-blue">
+            {chartMode ? 'TradingView Chart' : 'Upload Chart Image'}
+          </h3>
+          {chartMode && loading && (
+            <RefreshCw size={14} className="ml-2 animate-spin text-tron-blue/70" />
+          )}
+        </div>
+        
         <button 
           onClick={toggleMode}
-          className="flex items-center text-xs text-primary hover:text-primary/80 transition-colors"
+          className="flex items-center text-xs text-tron-blue hover:text-tron-cyan transition-colors bg-tron-darkBlue/50 px-2 py-1 rounded border border-tron-blue/20 hover:border-tron-blue/40"
         >
-          <ArrowLeftRight size={14} className="mr-1" />
+          <ArrowLeftRight size={12} className="mr-1" />
           Switch to {chartMode ? 'Upload' : 'TradingView'}
         </button>
       </div>
       
       <div
         className={cn(
-          "border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden",
-          "border-muted hover:border-muted-foreground/50",
+          "border rounded-xl flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden",
+          "border-tron-blue/30 bg-tron-darkBlue/70",
           className
         )}
         ref={containerRef}
       >
+        {/* Capture button */}
+        {chartMode && chartReady && !loading && (
+          <button
+            onClick={handleCaptureChart}
+            className="absolute top-4 right-4 z-30 capture-btn"
+            title="Capture Chart"
+          >
+            <Camera size={20} />
+          </button>
+        )}
+        
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-20 bg-tron-dark/50 backdrop-blur-sm flex items-center justify-center">
+            <div className="flex flex-col items-center">
+              <div className="w-10 h-10 border-2 border-tron-blue border-t-transparent rounded-full animate-spin mb-3"></div>
+              <p className="text-tron-cyan text-sm">Loading chart...</p>
+            </div>
+          </div>
+        )}
+        
         {/* Only show the preview overlay when we have a preview AND we're in upload mode */}
         {preview && !chartMode && (
           <div className="absolute inset-0 z-20 overflow-hidden">
@@ -201,9 +236,9 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
             />
             <button 
               onClick={clearPreview}
-              className="absolute top-2 right-2 bg-secondary rounded-full p-1 shadow-sm hover:bg-secondary/80 transition-colors z-30"
+              className="absolute top-2 right-2 bg-tron-darkBlue rounded-full p-1 shadow-sm hover:bg-tron-dark transition-colors z-30 border border-tron-blue/40"
             >
-              <X size={16} className="text-primary" />
+              <X size={16} className="text-tron-cyan" />
             </button>
           </div>
         )}
@@ -220,12 +255,12 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
             </div>
           ) : (
             <div onClick={triggerFileInput} className="w-full h-full flex flex-col items-center justify-center cursor-pointer">
-              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-                <Camera size={24} className="text-muted-foreground" />
+              <div className="w-16 h-16 rounded-full bg-tron-blue/10 border border-tron-blue/30 flex items-center justify-center mb-4 tron-glow">
+                <Camera size={24} className="text-tron-cyan" />
               </div>
-              <p className="text-muted-foreground font-medium mb-1">Drop your trading chart here</p>
-              <p className="text-sm text-muted-foreground/70">or click to browse files</p>
-              <p className="mt-4 text-xs text-muted-foreground/60 max-w-xs text-center">
+              <p className="text-tron-cyan font-medium mb-1">Drop your trading chart here</p>
+              <p className="text-sm text-tron-blue/80">or click to browse files</p>
+              <p className="mt-4 text-xs text-muted-foreground max-w-xs text-center">
                 Supported formats: PNG, JPG, JPEG, GIF
               </p>
             </div>
@@ -234,7 +269,7 @@ export const UploadArea = forwardRef<{handleCaptureChart: () => Promise<void>}, 
         
         {/* Status indicator at bottom */}
         {isCaptured && (
-          <div className="absolute bottom-0 left-0 right-0 bg-secondary/70 backdrop-blur-sm p-2 text-center text-sm font-medium z-10">
+          <div className="absolute bottom-0 left-0 right-0 bg-tron-blue/20 backdrop-blur-sm p-2 text-center text-sm font-medium z-10 border-t border-tron-blue/30 text-tron-cyan">
             Chart captured successfully
           </div>
         )}

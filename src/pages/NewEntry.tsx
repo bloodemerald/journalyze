@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Brain, Save } from 'lucide-react';
+import { ArrowLeft, Brain, Save, Zap, TrendingUp, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { UploadArea } from '@/components/UploadArea';
@@ -22,7 +21,6 @@ const NewEntry = () => {
   const [checklistComplete, setChecklistComplete] = useState(false);
   const [chartCaptured, setChartCaptured] = useState(false);
   
-  // Fix the ref type
   const uploadAreaRef = useRef<{ handleCaptureChart: () => Promise<void> }>(null);
   
   const [form, setForm] = useState<Partial<TradeEntry>>({
@@ -66,7 +64,6 @@ const NewEntry = () => {
           
           toast.success("Chart captured successfully");
           
-          // Automatically trigger analysis after capture
           if (form.symbol) {
             setTimeout(() => analyzeChartImage(), 800);
           }
@@ -89,12 +86,10 @@ const NewEntry = () => {
     }
     
     if (!imagePreview && !form.chartImageUrl && uploadAreaRef.current) {
-      // Try to capture chart first if no image preview exists
       console.log("No image preview, attempting to capture chart");
       try {
         await uploadAreaRef.current.handleCaptureChart();
         console.log("Chart capture initiated");
-        // Give a moment for the chart capture to complete
         await new Promise(resolve => setTimeout(resolve, 1500));
       } catch (error) {
         console.error('Error capturing chart:', error);
@@ -103,7 +98,6 @@ const NewEntry = () => {
       }
     }
 
-    // Check again to see if we now have a preview
     if (!imagePreview && !form.chartImageUrl) {
       console.log("Still no chart available after capture attempt");
       toast.error("No chart available to analyze");
@@ -130,24 +124,18 @@ const NewEntry = () => {
       if (analysis) {
         console.log("Analysis completed:", analysis);
         
-        // Determine position and sentiment based on trend
         const isBullish = analysis.trend?.toLowerCase().includes('bullish');
         const isBearish = analysis.trend?.toLowerCase().includes('bearish');
         const position = isBullish ? 'long' : isBearish ? 'short' : null;
         const sentiment = isBullish ? 'bullish' : isBearish ? 'bearish' : null;
         
-        // Calculate entry and exit prices based on support/resistance
         let entryPrice;
         let exitPrice;
         let profit;
         let profitPercentage;
         
-        // Make sure we have valid support/resistance arrays with numbers
         const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
         const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
-        
-        console.log("Support levels:", supportLevels);
-        console.log("Resistance levels:", resistanceLevels);
         
         if (supportLevels.length > 0 && resistanceLevels.length > 0) {
           if (isBullish) {
@@ -158,7 +146,6 @@ const NewEntry = () => {
             exitPrice = Math.min(...supportLevels);
           }
           
-          // Calculate profit
           if (position === 'long' && entryPrice && exitPrice) {
             profit = exitPrice - entryPrice;
             profitPercentage = (profit / entryPrice) * 100;
@@ -168,7 +155,6 @@ const NewEntry = () => {
           }
         }
         
-        // Update form with analysis results
         setForm(prev => ({
           ...prev,
           aiAnalysis: analysis,
@@ -250,7 +236,6 @@ const NewEntry = () => {
     }
   };
 
-  // Debug display of current form state
   useEffect(() => {
     console.log("Current form state:", form);
   }, [form]);
@@ -271,40 +256,63 @@ const NewEntry = () => {
           
           <button
             onClick={handleSubmit}
-            className={`px-5 py-2.5 bg-primary text-white rounded-md flex items-center font-medium ${!checklistComplete ? 'opacity-70' : ''}`}
+            className={`px-5 py-2.5 rounded-md flex items-center font-medium transition-all duration-300 ${
+              !checklistComplete 
+                ? 'bg-primary/30 text-white/70 cursor-not-allowed' 
+                : 'bg-primary text-white hover:bg-primary/90 hover:shadow-tron-sm'
+            }`}
+            disabled={!checklistComplete}
           >
             <Save size={16} className="mr-2" />
             Save Entry
           </button>
         </div>
         
-        <div className="animate-fade-in">
-          <h1 className="text-3xl font-bold mb-8 text-center">New Trade Entry</h1>
+        <div className="animate-fade-in space-y-8">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold mb-2 tron-text-glow">New Trade Entry</h1>
+            <p className="text-muted-foreground">Capture and analyze your trading opportunity</p>
+          </div>
           
-          {/* Chart Section - Full Width */}
-          <div className="mb-10">
+          <div className="glass-card p-6 rounded-xl border border-tron-blue/30 shadow-tron-sm">
             <div className="flex justify-between items-center mb-4">
               <div className="w-1/3">
-                <label className="block font-medium mb-2">Symbol</label>
-                <input
-                  type="text"
-                  name="symbol"
-                  value={form.symbol || ''}
-                  onChange={handleChange}
-                  placeholder="e.g. BTC/USD"
-                  className="input-field w-full"
-                  required
-                />
+                <label className="block font-medium text-sm mb-2 text-tron-cyan">Symbol</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="symbol"
+                    value={form.symbol || ''}
+                    onChange={handleChange}
+                    placeholder="e.g. BTC/USD"
+                    className="input-field w-full pl-10"
+                    required
+                  />
+                  <TrendingUp size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-tron-blue/70" />
+                </div>
               </div>
               
               <button
                 type="button"
                 onClick={analyzeChartImage}
-                className="flex items-center bg-primary/90 hover:bg-primary text-white py-2 px-4 rounded transition-colors"
+                className={`flex items-center py-2 px-4 rounded-md transition-all duration-300 ${
+                  isAnalyzing 
+                    ? 'bg-tron-blue/20 border border-tron-blue/40 cursor-wait'
+                    : 'bg-tron-blue/80 hover:bg-tron-blue border border-tron-cyan/50 hover:shadow-tron-sm'
+                }`}
                 disabled={isAnalyzing}
               >
-                <Brain size={16} className="mr-2" />
-                {isAnalyzing ? "Analyzing..." : "Analyze Chart"}
+                {isAnalyzing ? (
+                  <>
+                    <div className="w-4 h-4 mr-2 rounded-full border-2 border-tron-cyan border-t-transparent animate-spin"></div>
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Brain size={16} className="mr-2" />
+                    Analyze Chart
+                  </>
+                )}
               </button>
             </div>
             
@@ -313,15 +321,20 @@ const NewEntry = () => {
                 onImageUpload={handleImageUpload}
                 captureChart={analyzeChartImage}
                 symbol={form.symbol ? `BINANCE:${form.symbol.replace('/', '')}` : undefined}
-                className="h-[500px]" // Make the chart taller
+                className="h-[500px]"
                 ref={uploadAreaRef}
               />
               
               {apiError && (
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-600 text-sm">
-                  <p className="font-medium">API Error</p>
-                  <p>{apiError}</p>
-                  <p className="mt-2 text-xs">Note: Gemini Pro Vision was deprecated. The app now uses gemini-1.5-flash model.</p>
+                <div className="mt-4 p-3 bg-red-900/20 border border-red-500/30 rounded-md text-red-400 text-sm">
+                  <div className="flex items-start">
+                    <AlertTriangle size={16} className="mr-2 mt-0.5 text-red-400" />
+                    <div>
+                      <p className="font-medium">API Error</p>
+                      <p>{apiError}</p>
+                      <p className="mt-2 text-xs">Note: Gemini Pro Vision was deprecated. The app now uses gemini-1.5-flash model.</p>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -329,16 +342,20 @@ const NewEntry = () => {
           
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Trade Details - Left Column */}
-              <div className="space-y-6">
+              <div className="space-y-6 glass-card p-6 rounded-xl border border-tron-blue/30 shadow-tron-sm">
+                <h2 className="text-xl font-semibold text-tron-cyan mb-4 flex items-center">
+                  <Zap size={18} className="mr-2" />
+                  Trade Details
+                </h2>
+                
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-medium mb-2">Position</label>
+                    <label className="block font-medium text-sm mb-2 text-foreground">Position</label>
                     <select
                       name="position"
                       value={form.position || ''}
                       onChange={handleChange}
-                      className="input-field w-full"
+                      className="input-field w-full bg-tron-darkBlue"
                     >
                       <option value="">Select</option>
                       <option value="long">Long</option>
@@ -347,12 +364,12 @@ const NewEntry = () => {
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Sentiment</label>
+                    <label className="block font-medium text-sm mb-2 text-foreground">Sentiment</label>
                     <select
                       name="sentiment"
                       value={form.sentiment || ''}
                       onChange={handleChange}
-                      className="input-field w-full"
+                      className="input-field w-full bg-tron-darkBlue"
                     >
                       <option value="">Select</option>
                       <option value="bullish">Bullish</option>
@@ -363,50 +380,65 @@ const NewEntry = () => {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block font-medium mb-2">Entry Price</label>
+                    <label className="block font-medium text-sm mb-2 text-foreground">Entry Price</label>
                     <input
                       type="number"
                       name="entryPrice"
                       value={form.entryPrice || ''}
                       onChange={handleNumberChange}
                       onBlur={calculateProfit}
-                      className="input-field w-full"
+                      className="input-field w-full bg-tron-darkBlue"
                       step="0.01"
                       placeholder="0.00"
                     />
                   </div>
                   
                   <div>
-                    <label className="block font-medium mb-2">Exit Price</label>
+                    <label className="block font-medium text-sm mb-2 text-foreground">Exit Price</label>
                     <input
                       type="number"
                       name="exitPrice"
                       value={form.exitPrice || ''}
                       onChange={handleNumberChange}
                       onBlur={calculateProfit}
-                      className="input-field w-full"
+                      className="input-field w-full bg-tron-darkBlue"
                       step="0.01"
                       placeholder="0.00"
                     />
                   </div>
                 </div>
                 
+                {form.profit !== undefined && form.profitPercentage !== undefined && (
+                  <div className={`p-3 rounded-md text-sm flex items-center ${
+                    form.profit > 0 
+                      ? 'bg-green-900/20 border border-green-500/30 text-green-400' 
+                      : 'bg-red-900/20 border border-red-500/30 text-red-400'
+                  }`}>
+                    <TrendingUp size={16} className="mr-2" />
+                    <span>
+                      Potential {form.profit > 0 ? 'Profit' : 'Loss'}: {form.profit.toFixed(2)} ({form.profitPercentage.toFixed(2)}%)
+                    </span>
+                  </div>
+                )}
+                
                 <div>
-                  <label className="block font-medium mb-2">Notes</label>
+                  <label className="block font-medium text-sm mb-2 text-foreground">Notes</label>
                   <textarea
                     name="notes"
                     value={form.notes || ''}
                     onChange={handleChange}
-                    className="input-field w-full min-h-[120px]"
+                    className="input-field w-full min-h-[120px] bg-tron-darkBlue"
                     placeholder="Add your trade notes here..."
                   />
                 </div>
               </div>
               
-              {/* Analysis and Checklist - Right Column */}
               <div className="space-y-6">
-                <div>
-                  <label className="block font-medium mb-2">AI Analysis</label>
+                <div className="glass-card p-6 rounded-xl border border-tron-blue/30 shadow-tron-sm">
+                  <h2 className="text-xl font-semibold text-tron-cyan mb-4 flex items-center">
+                    <Brain size={18} className="mr-2" />
+                    AI Analysis
+                  </h2>
                   <AIAnalysisCard analysis={form.aiAnalysis} />
                 </div>
                 
@@ -416,7 +448,7 @@ const NewEntry = () => {
                   isAnalyzing={isAnalyzing}
                   chartCaptured={chartCaptured}
                   symbol={form.symbol as string}
-                  className="mt-6 bg-card rounded-lg p-4 border"
+                  className="glass-card rounded-xl p-6 border border-tron-blue/30 shadow-tron-sm"
                 />
               </div>
             </div>
