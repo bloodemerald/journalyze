@@ -3,7 +3,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 interface NewEntryHeaderProps {
-  onSave: () => void;
+  onSave: (e: React.FormEvent) => void; // Updated to accept a form event parameter
   checklistComplete: boolean;
 }
 
@@ -20,7 +20,7 @@ export function NewEntryHeader({ onSave, checklistComplete }: NewEntryHeaderProp
         </Link>
         
         <button
-          onClick={onSave}
+          onClick={onSave} // This will now correctly pass the event
           className={`px-5 py-2.5 rounded-md flex items-center font-medium transition-all duration-300 ${
             !checklistComplete 
               ? 'bg-primary/30 text-white/70 cursor-not-allowed' 
