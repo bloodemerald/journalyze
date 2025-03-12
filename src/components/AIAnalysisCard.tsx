@@ -2,6 +2,7 @@
 import { TradeEntry } from '@/lib/types';
 import { AlertCircle, Brain, TrendingUp, TrendingDown, Check, X, BarChart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { calculateLeveragedTradeParameters } from '@/lib/priceUtils';
 
 interface AIAnalysisCardProps {
   analysis: TradeEntry['aiAnalysis'];
@@ -39,65 +40,42 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
   const supportLevels = (analysis.support || []).filter(level => typeof level === 'number') as number[];
   const resistanceLevels = (analysis.resistance || []).filter(level => typeof level === 'number') as number[];
   
-  // Calculate entry, stop loss, and take profit based on professional trading principles
-  let entryPrice: number | undefined;
-  let stopLoss: number | undefined;
-  let takeProfit: number | undefined;
+  // Extract current price from analysis or use midpoint
+  const priceIndicators = analysis.technicalIndicators?.filter(
+    ind => ind.name.toLowerCase().includes('price') || ind.value?.includes('$')
+  );
   
-  // For trading calculations - using institutional-grade risk management
-  const DEFAULT_STOP_LOSS_PERCENT = 1.5; // Tighter stop loss for 5-min trading (institutional standard)
-  const DEFAULT_RISK_REWARD_RATIO = analysis.riskRewardRatio || 1.5;
-  
-  // Calculate based on trend - using proper institutional trading principles
-  if (isBullish && supportLevels.length > 0 && resistanceLevels.length > 0) {
-    // For bullish: Entry above key technical level, tight stop below support, target at resistance
-    const nearestSupport = Math.max(...supportLevels);
-    const nearestResistance = Math.min(...resistanceLevels);
-    
-    // Institutional traders enter on confirmation, not anticipation
-    entryPrice = parseFloat((nearestSupport * 1.002).toFixed(2));
-    
-    // Professional stop placement - based on volatility and technical levels
-    // Tight stops are institutional standard for 5-min charts
-    stopLoss = parseFloat((nearestSupport * (1 - DEFAULT_STOP_LOSS_PERCENT/100)).toFixed(2));
-    
-    // Take profit at resistance or based on risk-reward ratio, whichever is closer
-    const riskAmount = entryPrice - stopLoss;
-    const rewardBasedOnRatio = entryPrice + (riskAmount * DEFAULT_RISK_REWARD_RATIO);
-    
-    // Professional traders use the more conservative target
-    takeProfit = Math.min(nearestResistance, rewardBasedOnRatio);
-    takeProfit = parseFloat(takeProfit.toFixed(2));
-  } else if (isBearish && supportLevels.length > 0 && resistanceLevels.length > 0) {
-    // For bearish: Entry below key technical level, tight stop above resistance, target at support
-    const nearestSupport = Math.max(...supportLevels);
-    const nearestResistance = Math.min(...resistanceLevels);
-    
-    // Institutional traders enter on confirmation, not anticipation
-    entryPrice = parseFloat((nearestResistance * 0.998).toFixed(2));
-    
-    // Professional stop placement - based on volatility and technical levels
-    stopLoss = parseFloat((nearestResistance * (1 + DEFAULT_STOP_LOSS_PERCENT/100)).toFixed(2));
-    
-    // Take profit at support or based on risk-reward ratio, whichever is closer
-    const riskAmount = stopLoss - entryPrice;
-    const rewardBasedOnRatio = entryPrice - (riskAmount * DEFAULT_RISK_REWARD_RATIO);
-    
-    // Professional traders use the more conservative target
-    takeProfit = Math.max(nearestSupport, rewardBasedOnRatio);
-    takeProfit = parseFloat(takeProfit.toFixed(2));
-  }
-  
-  // Calculate exact risk/reward ratio based on our values - institutional precision
-  let riskRewardRatio = analysis.riskRewardRatio;
-  if (!riskRewardRatio && entryPrice && stopLoss && takeProfit) {
-    const risk = Math.abs(entryPrice - stopLoss);
-    const reward = Math.abs(entryPrice - takeProfit);
-    if (risk > 0) {
-      // Show precise ratio to one decimal place - institutional standard
-      riskRewardRatio = parseFloat((reward / risk).toFixed(1));
+  // Find approximate current price from technical indicators or support/resistance midpoint
+  let currentPrice = 0;
+  if (priceIndicators && priceIndicators.length > 0) {
+    // Try to extract price from indicators
+    const priceMatch = priceIndicators[0].value.match(/\$?(\d+(\.\d+)?)/);
+    if (priceMatch) {
+      currentPrice = parseFloat(priceMatch[1]);
     }
   }
+  
+  // If we couldn't extract price, calculate from support/resistance
+  if (!currentPrice && supportLevels.length > 0 && resistanceLevels.length > 0) {
+    // Use midpoint between nearest support and resistance as approximation
+    const midSupport = Math.max(...supportLevels);
+    const midResistance = Math.min(...resistanceLevels);
+    currentPrice = (midSupport + midResistance) / 2;
+  } else if (!currentPrice) {
+    // Fallback - use first support or resistance value if available
+    currentPrice = supportLevels[0] || resistanceLevels[0] || 100;
+  }
+  
+  // Calculate professional trading setup with precise leverage parameters
+  const tradeSetup = calculateLeveragedTradeParameters(
+    analysis.trend || '',
+    currentPrice,
+    supportLevels,
+    resistanceLevels
+  );
+  
+  // Use provided risk/reward or calculated one
+  const riskRewardRatio = analysis.riskRewardRatio || tradeSetup.riskRewardRatio;
   
   return (
     <div className={cn("bg-background p-6 rounded-lg border border-border", className)}>
@@ -189,29 +167,29 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
         
         {/* Right Column - Trade Setup - Institutional Format */}
         <div className="space-y-4">
-          <h4 className="font-semibold mb-3">Institutional Trade Setup</h4>
+          <h4 className="font-semibold mb-3">Leveraged Trade Setup (10x)</h4>
           
           <div className="space-y-3">
-            {entryPrice && (
+            {tradeSetup.entryPrice && (
               <div className="flex justify-between items-center">
                 <span className="text-sm">Entry Price</span>
                 <span className={cn("font-medium", isBullish ? "text-green-600" : "text-red-600")}>
-                  ${entryPrice.toFixed(2)}
+                  ${tradeSetup.entryPrice.toFixed(2)}
                 </span>
               </div>
             )}
             
-            {stopLoss && (
+            {tradeSetup.stopLoss && (
               <div className="flex justify-between items-center">
-                <span className="text-sm">Stop Loss</span>
-                <span className="font-medium text-red-600">${stopLoss.toFixed(2)}</span>
+                <span className="text-sm">Stop Loss (0.7%)</span>
+                <span className="font-medium text-red-600">${tradeSetup.stopLoss.toFixed(2)}</span>
               </div>
             )}
             
-            {takeProfit && (
+            {tradeSetup.takeProfit && (
               <div className="flex justify-between items-center">
                 <span className="text-sm">Take Profit</span>
-                <span className="font-medium text-green-600">${takeProfit.toFixed(2)}</span>
+                <span className="font-medium text-green-600">${tradeSetup.takeProfit.toFixed(2)}</span>
               </div>
             )}
             
@@ -221,6 +199,11 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
                 <span className="font-medium">1:{riskRewardRatio}</span>
               </div>
             )}
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Leverage</span>
+              <span className="font-medium text-amber-600">10x</span>
+            </div>
           </div>
           
           {/* Technical Indicators - Professional Format */}
