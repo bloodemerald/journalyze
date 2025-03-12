@@ -172,7 +172,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
           <div className="space-y-3">
             {tradeSetup.entryPrice && (
               <div className="flex justify-between items-center">
-                <span className="text-sm">Entry Price</span>
+                <span className="text-sm">Current Price (Entry)</span>
                 <span className={cn("font-medium", isBullish ? "text-green-600" : "text-red-600")}>
                   ${tradeSetup.entryPrice.toFixed(2)}
                 </span>
@@ -188,7 +188,7 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
             
             {tradeSetup.takeProfit && (
               <div className="flex justify-between items-center">
-                <span className="text-sm">Take Profit</span>
+                <span className="text-sm">Take Profit (0.5-2%)</span>
                 <span className="font-medium text-green-600">${tradeSetup.takeProfit.toFixed(2)}</span>
               </div>
             )}
@@ -199,6 +199,11 @@ export function AIAnalysisCard({ analysis, className }: AIAnalysisCardProps) {
                 <span className="font-medium">1:{riskRewardRatio}</span>
               </div>
             )}
+            
+            <div className="flex justify-between items-center">
+              <span className="text-sm">Profit Target Range</span>
+              <span className="font-medium text-amber-600">0.5% - 2%</span>
+            </div>
             
             <div className="flex justify-between items-center">
               <span className="text-sm">Leverage</span>

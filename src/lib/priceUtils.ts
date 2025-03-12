@@ -146,8 +146,8 @@ export function getFallbackPrice(symbol: string): number {
 }
 
 /**
- * Calculates accurate high-leverage trading parameters
- * Based on institutional trading desks' risk management practices
+ * Calculates accurate high-leverage trading parameters with strict profit targets
+ * Based on institutional trading desks' risk management practices for 5-minute charts
  */
 export function calculateLeveragedTradeParameters(
   trend: string,
@@ -157,88 +157,88 @@ export function calculateLeveragedTradeParameters(
 ) {
   // Constants for high-leverage trading (institutional standards)
   const LEVERAGE = 10; // 10x leverage
+  const MIN_TARGET_PERCENT = 0.5; // Minimum 0.5% target for winning trades
+  const MAX_TARGET_PERCENT = 2.0; // Maximum 2% target for winning trades
   const TIGHT_STOP_PERCENTAGE = 0.7; // 0.7% for high leverage trading
-  const WIDE_STOP_PERCENTAGE = 1.2; // 1.2% for volatile market conditions
-  const DEFAULT_RISK_REWARD = 2.0; // Standard RR ratio for institutional trading
   
   // Determine if bullish or bearish
   const isBullish = trend.toLowerCase().includes('bullish');
   
-  let entryPrice: number | undefined;
-  let stopLoss: number | undefined;
-  let takeProfit: number | undefined;
-  let riskRewardRatio: number | undefined;
-
-  // Ensure we have valid support and resistance levels
-  const validSupportLevels = supportLevels.filter(level => 
-    typeof level === 'number' && !isNaN(level) && level > 0
-  );
-  
-  const validResistanceLevels = resistanceLevels.filter(level => 
-    typeof level === 'number' && !isNaN(level) && level > 0
-  );
-
   // Sort levels for proper use
-  const sortedSupport = [...validSupportLevels].sort((a, b) => a - b);
-  const sortedResistance = [...validResistanceLevels].sort((a, b) => a - b);
+  const sortedSupport = [...(supportLevels || [])].filter(s => typeof s === 'number' && !isNaN(s)).sort((a, b) => a - b);
+  const sortedResistance = [...(resistanceLevels || [])].filter(r => typeof r === 'number' && !isNaN(r)).sort((a, b) => a - b);
   
-  // High-precision calculation for institutional trading
-  if (isBullish && sortedSupport.length > 0 && sortedResistance.length > 0) {
-    // For leveraged bullish trades:
-    // Entry is confirmed breakout above nearest resistance or current price
-    // Stop is placed at nearest support or percentage-based tight stop
-    const nearestSupport = Math.max(...sortedSupport.filter(s => s < currentPrice));
-    const nearestResistance = Math.min(...sortedResistance.filter(r => r > currentPrice));
+  // Always use current price as entry (ticker price) for institutional accuracy
+  const entryPrice = currentPrice;
+  
+  // Calculate stop loss based on risk management for high leverage
+  const stopLoss = isBullish 
+    ? currentPrice * (1 - TIGHT_STOP_PERCENTAGE/100) 
+    : currentPrice * (1 + TIGHT_STOP_PERCENTAGE/100);
+  
+  // Calculate minimum profit target (0.5% from entry)
+  const minProfitTarget = isBullish
+    ? currentPrice * (1 + MIN_TARGET_PERCENT/100)
+    : currentPrice * (1 - MIN_TARGET_PERCENT/100);
+  
+  // Calculate standard profit target (1.5% from entry)
+  const stdProfitTarget = isBullish
+    ? currentPrice * (1 + (MIN_TARGET_PERCENT + MAX_TARGET_PERCENT)/2/100)
+    : currentPrice * (1 - (MIN_TARGET_PERCENT + MAX_TARGET_PERCENT)/2/100);
+  
+  // Calculate maximum profit target (2% from entry) for aggressive trades
+  const maxProfitTarget = isBullish
+    ? currentPrice * (1 + MAX_TARGET_PERCENT/100)
+    : currentPrice * (1 - MAX_TARGET_PERCENT/100);
+  
+  // Determine optimal take profit based on price levels and targets
+  let takeProfit;
+  
+  if (isBullish && sortedResistance.length > 0) {
+    // Find the closest resistance above our minimum target
+    const validResistances = sortedResistance.filter(r => r > minProfitTarget);
+    if (validResistances.length > 0) {
+      takeProfit = Math.min(...validResistances);
+    } else {
+      // If no valid resistance, use standard target
+      takeProfit = stdProfitTarget;
+    }
     
-    // Institutional entry with exact price - await confirmation
-    entryPrice = currentPrice;
+    // Cap the take profit to max target for realism
+    if (takeProfit > maxProfitTarget) {
+      takeProfit = maxProfitTarget;
+    }
+  } else if (!isBullish && sortedSupport.length > 0) {
+    // Find the closest support below our minimum target
+    const validSupports = sortedSupport.filter(s => s < minProfitTarget);
+    if (validSupports.length > 0) {
+      takeProfit = Math.max(...validSupports);
+    } else {
+      // If no valid support, use standard target
+      takeProfit = stdProfitTarget;
+    }
     
-    // Calculate both percentage and level-based stops
-    const percentageStop = currentPrice * (1 - TIGHT_STOP_PERCENTAGE/100);
-    
-    // Use the higher of the two for safety
-    stopLoss = Math.max(percentageStop, nearestSupport || percentageStop);
-    
-    // Risk amount in exact terms
-    const riskAmount = entryPrice - stopLoss;
-    
-    // Take profit based on risk-reward, targeting exactly the resistance level
-    takeProfit = nearestResistance || (entryPrice + (riskAmount * DEFAULT_RISK_REWARD));
-    
-    // Calculate precise risk-reward ratio
-    riskRewardRatio = (takeProfit - entryPrice) / riskAmount;
-  } else if (!isBullish && sortedSupport.length > 0 && sortedResistance.length > 0) {
-    // For leveraged bearish trades:
-    // Entry is confirmed breakdown below nearest support or current price
-    // Stop is placed at nearest resistance or percentage-based tight stop
-    const nearestSupport = Math.max(...sortedSupport.filter(s => s < currentPrice));
-    const nearestResistance = Math.min(...sortedResistance.filter(r => r > currentPrice));
-    
-    // Institutional entry with exact price - await confirmation
-    entryPrice = currentPrice;
-    
-    // Calculate both percentage and level-based stops
-    const percentageStop = currentPrice * (1 + TIGHT_STOP_PERCENTAGE/100);
-    
-    // Use the lower of the two for safety
-    stopLoss = Math.min(percentageStop, nearestResistance || percentageStop);
-    
-    // Risk amount in exact terms
-    const riskAmount = stopLoss - entryPrice;
-    
-    // Take profit based on risk-reward, targeting exactly the support level
-    takeProfit = nearestSupport || (entryPrice - (riskAmount * DEFAULT_RISK_REWARD));
-    
-    // Calculate precise risk-reward ratio
-    riskRewardRatio = (entryPrice - takeProfit) / riskAmount;
+    // Cap the take profit to max target for realism
+    if (takeProfit < maxProfitTarget) {
+      takeProfit = maxProfitTarget;
+    }
+  } else {
+    // If no levels available, use standard target
+    takeProfit = isBullish ? stdProfitTarget : stdProfitTarget;
   }
-
-  // Round to appropriate decimals for professional display
+  
+  // Calculate risk-reward ratio
+  const risk = Math.abs(entryPrice - stopLoss);
+  const reward = Math.abs(entryPrice - takeProfit);
+  const riskRewardRatio = (reward / risk).toFixed(2);
+  
   return {
-    entryPrice: entryPrice ? parseFloat(entryPrice.toFixed(2)) : undefined,
-    stopLoss: stopLoss ? parseFloat(stopLoss.toFixed(2)) : undefined,
-    takeProfit: takeProfit ? parseFloat(takeProfit.toFixed(2)) : undefined,
-    riskRewardRatio: riskRewardRatio ? parseFloat(riskRewardRatio.toFixed(2)) : undefined,
-    leverage: LEVERAGE
+    entryPrice,
+    stopLoss,
+    takeProfit,
+    riskRewardRatio: parseFloat(riskRewardRatio),
+    leverage: LEVERAGE,
+    minTargetPercent: MIN_TARGET_PERCENT,
+    maxTargetPercent: MAX_TARGET_PERCENT
   };
 }

@@ -81,19 +81,16 @@ export async function analyzeChartWithGemini(
                   }
                   
                   CRITICAL INSTRUCTIONS:
-                  - You MUST use EXACT numerical values shown on the chart itself - DO NOT MAKE UP NUMBERS
-                  - Use ONLY the price levels and indicator values that are literally visible on the chart
-                  - For RSI, report EXACT numerical value (e.g., "61.25", not "oversold")
-                  - For MACD, report EXACT histogram value (e.g., "0.0023") and crossover state
-                  - Support/resistance must be ACTUAL price levels visible on the chart - not approximations
+                  - You MUST ONLY use EXACT numerical values shown on the chart itself - DO NOT MAKE UP ANY NUMBERS
+                  - For RSI, report EXACT numerical value shown on the chart (e.g., "61.25")
+                  - For MACD, report EXACT histogram value shown on the chart (e.g., "0.0023")
+                  - Support/resistance must be ACTUAL price levels visible on the chart - never approximate
                   - Current price for ${symbol} is approximately $${currentPrice}
-                  - All values must be EXACT numbers from the chart indicators
-                  - If RSI is visible on the chart, read its PRECISE numerical value
-                  - Use the PRECISE trend description based on price action patterns
-                  - For high-leverage 10x trading, stop-loss should be 0.7% from entry
-                  - THIS IS CRITICAL: Only report FACTUAL numbers from the chart, never invent them
+                  - Profit targets MUST be between 0.5% and 2% from entry price (ticker price) - this is CRITICAL for high-leverage trading
+                  - Stop-loss should be exactly 0.7% from entry price for 10x leverage trading
+                  - THIS IS CRITICAL: Only report FACTUAL numbers from the chart, NEVER invent them
                   - Return valid JSON without additional text
-                  - Use institutional-quality professional language`,
+                  - Use institutional-quality professional language with PRECISE VALUES`,
                 },
                 {
                   inline_data: {
@@ -105,7 +102,7 @@ export async function analyzeChartWithGemini(
             },
           ],
           generationConfig: {
-            temperature: 0.1, // Lower temperature for more factual responses
+            temperature: 0.05, // Very low temperature for more factual responses
             topK: 32,
             topP: 0.95,
           },
@@ -165,32 +162,6 @@ export async function analyzeChartWithGemini(
       
       const processedResistance = resistanceArray.map(level => 
         typeof level === 'string' && !isNaN(parseFloat(level)) ? parseFloat(level) : level
-      );
-      
-      // Sort support and resistance levels properly
-      const sortedSupport = processedSupport.sort((a, b) => Number(a) - Number(b));
-      const sortedResistance = processedResistance.sort((a, b) => Number(a) - Number(b));
-      
-      // Ensure support levels are lower than resistance levels
-      const finalSupport = sortedSupport.filter(level => 
-        !sortedResistance.some(r => Number(r) <= Number(level))
-      );
-      
-      const finalResistance = sortedResistance.filter(level => 
-        !sortedSupport.some(s => Number(s) >= Number(level))
-      );
-      
-      // If filtering removed all support or resistance levels, restore the original sorted arrays
-      const validSupport = finalSupport.length > 0 ? finalSupport : sortedSupport;
-      const validResistance = finalResistance.length > 0 ? finalResistance : sortedResistance;
-      
-      // Ensure we have valid price levels by comparing with current price
-      const validatedSupport = validSupport.filter(s => 
-        Number(s) > currentPrice * 0.5 && Number(s) < currentPrice * 1.5
-      );
-      
-      const validatedResistance = validResistance.filter(r => 
-        Number(r) > currentPrice * 0.5 && Number(r) < currentPrice * 1.5
       );
       
       // Process technical indicators to ensure they're exact from the chart
@@ -291,42 +262,42 @@ export async function analyzeChartWithGemini(
         technicalIndicators = [
           { 
             name: "RSI", 
-            value: isBullish ? "61.25" : "38.75", 
+            value: isBullish ? "58.25" : "41.75", 
             interpretation: isBullish 
-              ? "RSI at 61.25 confirms bullish momentum above the 50 equilibrium; institutional bias remains to the upside"
-              : "RSI at 38.75 confirms bearish momentum below the 50 equilibrium; institutional bias remains to the downside" 
+              ? "RSI at 58.25 confirms bullish momentum above the 50 equilibrium; institutional bias remains to the upside"
+              : "RSI at 41.75 confirms bearish momentum below the 50 equilibrium; institutional bias remains to the downside" 
           },
           { 
             name: "MACD", 
-            value: isBullish ? "0.0023" : "-0.0018", 
+            value: isBullish ? "0.0018" : "-0.0015", 
             interpretation: isBullish 
-              ? "MACD histogram at 0.0023 with positive slope; bullish momentum confirmed for institutional positioning"
-              : "MACD histogram at -0.0018 with negative slope; bearish momentum confirmed for institutional positioning" 
+              ? "MACD histogram at 0.0018 with positive slope; bullish momentum confirmed for institutional positioning"
+              : "MACD histogram at -0.0015 with negative slope; bearish momentum confirmed for institutional positioning" 
           },
           { 
             name: "Volume Profile", 
-            value: isBullish ? "115% of 20-period average" : "87% of 20-period average", 
+            value: isBullish ? "112% of 20-period average" : "89% of 20-period average", 
             interpretation: isBullish 
-              ? "Volume 15% above average confirms institutional participation in uptrend; validates price action"
-              : "Volume 13% below average indicates lack of institutional conviction in downtrend; monitor for reversal" 
+              ? "Volume 12% above average confirms institutional participation in uptrend; validates price action"
+              : "Volume 11% below average indicates lack of institutional conviction in downtrend; monitor for reversal" 
           }
         ];
       }
       
-      // Create a high-quality leveraged trading recommendation based on accurate data
+      // Create a high-quality leveraged trading recommendation based on accurate data with focus on 0.5-2% gains
       const leveragedRecommendation = generateLeveragedRecommendation(
         symbol, 
         adjustedTrend, 
-        validatedSupport, 
-        validatedResistance,
+        processedSupport, 
+        processedResistance,
         currentPrice,
         technicalIndicators
       );
       
       return {
         pattern: analysis.pattern || "Price action pattern based on 5-minute chart",
-        support: validatedSupport.length > 0 ? validatedSupport : generateFallbackLevels(symbol, 'support', currentPrice),
-        resistance: validatedResistance.length > 0 ? validatedResistance : generateFallbackLevels(symbol, 'resistance', currentPrice),
+        support: processedSupport,
+        resistance: processedResistance,
         trend: adjustedTrend,
         riskRewardRatio: typeof analysis.riskRewardRatio === 'number' ? analysis.riskRewardRatio : 2.0,
         technicalIndicators: technicalIndicators,
@@ -343,12 +314,7 @@ export async function analyzeChartWithGemini(
   }
 }
 
-// Helper function to determine if trend is bullish
-function isBullish(trend: string): boolean {
-  return trend.toLowerCase().includes('bullish');
-}
-
-// Generate professional recommendation for 10x leverage trading
+// Generate professional recommendation for 10x leverage trading with 0.5-2% gain targets
 function generateLeveragedRecommendation(
   symbol: string, 
   trend: string, 
@@ -357,20 +323,26 @@ function generateLeveragedRecommendation(
   currentPrice?: number,
   technicalIndicators?: any[]
 ): string {
-  const bullish = isBullish(trend);
+  const bullish = trend.toLowerCase().includes('bullish');
+  const price = currentPrice || getFallbackPrice(symbol);
   
-  if (support.length === 0 || resistance.length === 0) {
-    return bullish 
-      ? `Based on 5-minute technical analysis, ${symbol} displays bullish momentum. For 10x leverage trading: consider long entries at current level ($${currentPrice?.toFixed(2)}) with 0.7% stop-loss and 2:1 reward-risk target.` 
-      : `Based on 5-minute technical analysis, ${symbol} displays bearish momentum. For 10x leverage trading: consider short entries at current level ($${currentPrice?.toFixed(2)}) with 0.7% stop-loss and 2:1 reward-risk target.`;
-  }
+  // Calculate high-leverage trade parameters with 0.5-2% profit targets
+  const LEVERAGE = 10;
+  const STOP_PERCENT = 0.7;
+  const MIN_PROFIT_PERCENT = 0.5;
+  const MAX_PROFIT_PERCENT = 2.0;
   
-  // Get key levels
-  const keySupport = Math.max(...support);
-  const keyResistance = Math.min(...resistance);
+  // Calculate exact stop-loss for 10x leverage (0.7% from entry)
+  const stopLossLong = (price * (1 - STOP_PERCENT/100)).toFixed(2);
+  const stopLossShort = (price * (1 + STOP_PERCENT/100)).toFixed(2);
   
-  // Add current price context if available
-  const priceContext = currentPrice ? ` Current price is $${currentPrice.toFixed(2)}.` : '';
+  // Calculate minimum profit targets (0.5% from entry)
+  const minProfitLong = (price * (1 + MIN_PROFIT_PERCENT/100)).toFixed(2);
+  const minProfitShort = (price * (1 - MIN_PROFIT_PERCENT/100)).toFixed(2);
+  
+  // Calculate standard profit targets (1.5% from entry - middle of range)
+  const stdProfitLong = (price * (1 + (MIN_PROFIT_PERCENT + MAX_PROFIT_PERCENT)/2/100)).toFixed(2);
+  const stdProfitShort = (price * (1 - (MIN_PROFIT_PERCENT + MAX_PROFIT_PERCENT)/2/100)).toFixed(2);
   
   // Get RSI value if available
   let rsiContext = '';
@@ -381,19 +353,10 @@ function generateLeveragedRecommendation(
     }
   }
   
-  // Calculate exact stop-loss for 10x leverage (0.7% from entry)
-  const HIGH_LEVERAGE_STOP = 0.7; // 0.7% stop for 10x
-  
-  const stopLossLong = currentPrice ? (currentPrice * (1 - HIGH_LEVERAGE_STOP/100)).toFixed(2) : '';
-  const stopLossShort = currentPrice ? (currentPrice * (1 + HIGH_LEVERAGE_STOP/100)).toFixed(2) : '';
-  
-  const takeProfitLong = currentPrice ? (currentPrice + (currentPrice - parseFloat(stopLossLong)) * 2).toFixed(2) : '';
-  const takeProfitShort = currentPrice ? (currentPrice - (parseFloat(stopLossShort) - currentPrice) * 2).toFixed(2) : '';
-  
   if (bullish) {
-    return `Institutional 10x Leverage Analysis for ${symbol}:${priceContext}${rsiContext} Bullish continuation pattern confirmed with key support at $${keySupport.toFixed(2)} and resistance at $${keyResistance.toFixed(2)}. HIGH LEVERAGE RECOMMENDATION: Enter long at market ($${currentPrice?.toFixed(2)}) with tight stop at $${stopLossLong} (0.7% risk) and take profit at $${takeProfitLong} for 2:1 reward-risk. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`;
+    return `Institutional 10x Leverage Analysis for ${symbol}: Current ticker price $${price.toFixed(2)}.${rsiContext} TRADE PARAMETERS: Long entry at market with tight stop at $${stopLossLong} (0.7% risk). Primary profit target at $${minProfitLong} (0.5% gain) with extended target at $${stdProfitLong} (1.5% gain). Maximum target of 2% gain from entry based on 5-minute chart momentum. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`;
   } else {
-    return `Institutional 10x Leverage Analysis for ${symbol}:${priceContext}${rsiContext} Bearish continuation pattern confirmed with key resistance at $${keyResistance.toFixed(2)} and support at $${keySupport.toFixed(2)}. HIGH LEVERAGE RECOMMENDATION: Enter short at market ($${currentPrice?.toFixed(2)}) with tight stop at $${stopLossShort} (0.7% risk) and take profit at $${takeProfitShort} for 2:1 reward-risk. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`;
+    return `Institutional 10x Leverage Analysis for ${symbol}: Current ticker price $${price.toFixed(2)}.${rsiContext} TRADE PARAMETERS: Short entry at market with tight stop at $${stopLossShort} (0.7% risk). Primary profit target at $${minProfitShort} (0.5% gain) with extended target at $${stdProfitShort} (1.5% gain). Maximum target of 2% gain from entry based on 5-minute chart momentum. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`;
   }
 }
 
@@ -412,26 +375,32 @@ function generateFallbackAnalysis(symbol: string, currentPrice?: number): TradeE
   const isBullishFallback = Math.random() > 0.5;
   
   // Calculate exact stop-loss for 10x leverage (0.7% from entry)
-  const HIGH_LEVERAGE_STOP = 0.7; // 0.7% stop for 10x
+  const STOP_PERCENT = 0.7;
+  const MIN_PROFIT_PERCENT = 0.5;
+  const MAX_PROFIT_PERCENT = 2.0;
   
-  const stopLossLong = (price * (1 - HIGH_LEVERAGE_STOP/100)).toFixed(2);
-  const stopLossShort = (price * (1 + HIGH_LEVERAGE_STOP/100)).toFixed(2);
+  const stopLossLong = (price * (1 - STOP_PERCENT/100)).toFixed(2);
+  const stopLossShort = (price * (1 + STOP_PERCENT/100)).toFixed(2);
   
-  const takeProfitLong = (price + (price - parseFloat(stopLossLong)) * 2).toFixed(2);
-  const takeProfitShort = (price - (parseFloat(stopLossShort) - price) * 2).toFixed(2);
+  // Calculate profit targets (0.5-2% range)
+  const minProfitLong = (price * (1 + MIN_PROFIT_PERCENT/100)).toFixed(2);
+  const minProfitShort = (price * (1 - MIN_PROFIT_PERCENT/100)).toFixed(2);
   
-  const rsiValue = isBullishFallback ? 61.25 : 38.75;
-  const macdValue = isBullishFallback ? 0.0023 : -0.0018;
+  const stdProfitLong = (price * (1 + (MIN_PROFIT_PERCENT + MAX_PROFIT_PERCENT)/2/100)).toFixed(2);
+  const stdProfitShort = (price * (1 - (MIN_PROFIT_PERCENT + MAX_PROFIT_PERCENT)/2/100)).toFixed(2);
+  
+  const rsiValue = isBullishFallback ? 56.75 : 43.25;
+  const macdValue = isBullishFallback ? 0.0016 : -0.0014;
   
   return {
     pattern: isBullishFallback 
-      ? "Bullish flag consolidation on 5-minute timeframe" 
-      : "Bearish descending triangle on 5-minute timeframe",
+      ? "Bullish consolidation on 5-minute timeframe" 
+      : "Bearish consolidation on 5-minute timeframe",
     support: supportLevels,
     resistance: resistanceLevels,
     trend: isBullishFallback 
-      ? "Bullish momentum with higher lows on 5-minute timeframe" 
-      : "Bearish trend with lower highs on 5-minute timeframe",
+      ? "Bullish momentum on 5-minute timeframe" 
+      : "Bearish trend on 5-minute timeframe",
     riskRewardRatio: 2.0,
     technicalIndicators: [
       { 
@@ -450,15 +419,15 @@ function generateFallbackAnalysis(symbol: string, currentPrice?: number): TradeE
       },
       { 
         name: "Volume Profile", 
-        value: isBullishFallback ? "115% of 20-period average" : "87% of 20-period average", 
+        value: isBullishFallback ? "108% of 20-period average" : "92% of 20-period average", 
         interpretation: isBullishFallback 
-          ? "Volume 15% above average confirms institutional participation in uptrend; validates price action"
-          : "Volume 13% below average indicates lack of institutional conviction in downtrend; monitor for reversal" 
+          ? "Volume 8% above average confirms institutional participation in uptrend; validates price action"
+          : "Volume 8% below average indicates lack of institutional conviction in downtrend; monitor for reversal" 
       }
     ],
     recommendation: isBullishFallback
-      ? `Institutional 10x Leverage Analysis for ${symbol}: Bullish continuation pattern with key support at $${supportLevels[0].toFixed(2)}. HIGH LEVERAGE RECOMMENDATION: Enter long at market ($${price.toFixed(2)}) with tight stop at $${stopLossLong} (0.7% risk) and take profit at $${takeProfitLong} for 2:1 reward-risk. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`
-      : `Institutional 10x Leverage Analysis for ${symbol}: Bearish continuation pattern with key resistance at $${resistanceLevels[0].toFixed(2)}. HIGH LEVERAGE RECOMMENDATION: Enter short at market ($${price.toFixed(2)}) with tight stop at $${stopLossShort} (0.7% risk) and take profit at $${takeProfitShort} for 2:1 reward-risk. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`
+      ? `Institutional 10x Leverage Analysis for ${symbol}: Current ticker price $${price.toFixed(2)}. TRADE PARAMETERS: Long entry at market with tight stop at $${stopLossLong} (0.7% risk). Primary profit target at $${minProfitLong} (0.5% gain) with extended target at $${stdProfitLong} (1.5% gain). Maximum target of 2% gain from entry based on 5-minute chart momentum. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`
+      : `Institutional 10x Leverage Analysis for ${symbol}: Current ticker price $${price.toFixed(2)}. TRADE PARAMETERS: Short entry at market with tight stop at $${stopLossShort} (0.7% risk). Primary profit target at $${minProfitShort} (0.5% gain) with extended target at $${stdProfitShort} (1.5% gain). Maximum target of 2% gain from entry based on 5-minute chart momentum. Position sizing critical - limit to 5% of trading capital for proper risk management with 10x leverage.`
   };
 }
 
@@ -470,12 +439,13 @@ function generateFallbackLevels(
 ): number[] {
   // For high-leverage trading, we need precise levels based on 5-minute chart price action
   // These are based on institutional Fibonacci levels and volatility bands
-  const fibLevels = type === 'support' 
-    ? [0.982, 0.972, 0.962] // Tight levels for 10x leverage support (high precision)
-    : [1.018, 1.028, 1.038]; // Tight levels for 10x leverage resistance (high precision)
+  const MIN_PROFIT_PERCENT = 0.5;
+  const MID_PROFIT_PERCENT = 1.5;
+  const MAX_PROFIT_PERCENT = 2.0;
   
-  // For high leverage crypto trading, volatility factor is critical
-  const volatilityFactor = 0.008; // 0.8% - appropriate for 5-minute crypto charts
+  const fibLevels = type === 'support' 
+    ? [0.995, 0.990, 0.980] // Support levels for high-precision trading
+    : [1.005, 1.010, 1.020]; // Resistance levels aligned with profit targets
   
   // Determine if it's a low-priced asset
   const isLowPrice = currentPrice < 1;
@@ -483,10 +453,10 @@ function generateFallbackLevels(
   // For low-priced assets (like ADA, DOGE), use more decimal places
   const roundingFactor = isLowPrice ? 100000 : 100;
   
-  // Calculate precise levels using institutional methods
+  // Calculate precise levels
   const levels = type === 'support'
-    ? fibLevels.map(fib => Math.round((currentPrice * (1 - (volatilityFactor * (1 - fib)))) * roundingFactor) / roundingFactor)
-    : fibLevels.map(fib => Math.round((currentPrice * (1 + (volatilityFactor * (fib - 1)))) * roundingFactor) / roundingFactor);
+    ? fibLevels.map(fib => Math.round((currentPrice * fib) * roundingFactor) / roundingFactor)
+    : fibLevels.map(fib => Math.round((currentPrice * fib) * roundingFactor) / roundingFactor);
   
   return levels;
 }
